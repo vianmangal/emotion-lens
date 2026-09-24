@@ -1,5 +1,4 @@
 import os
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -23,7 +22,7 @@ def detect_largest_face(
     scale_factor: float = 1.1,
     min_neighbors: int = 5,
     min_size: int = 48,
-) -> Tuple[Optional[np.ndarray], bool]:
+) -> tuple[np.ndarray | None, tuple[int, int, int, int] | None, int]:
     cascade = _get_cascade()
     faces = cascade.detectMultiScale(
         gray,
@@ -32,8 +31,8 @@ def detect_largest_face(
         minSize=(min_size, min_size),
     )
     if len(faces) == 0:
-        return None, False
+        return None, None, 0
 
     x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
     face = gray[y : y + h, x : x + w]
-    return face, True
+    return face, (int(x), int(y), int(w), int(h)), len(faces)

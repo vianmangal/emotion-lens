@@ -15,9 +15,9 @@ EmotionLens detects the largest visible face, converts it to the model's `48 × 
 
 ## Features
 
-- Upload JPG, PNG, JPEG, or WebP images through a responsive drag-and-drop interface.
+- Upload JPG, PNG, or WebP images up to 5 MiB and 4096 × 4096 pixels through a responsive drag-and-drop interface.
 - Capture a frame directly from the browser using the webcam.
-- Detect and crop the largest face before inference, with a full-frame fallback.
+- Reject images without a detected face; when several faces are present, outline the largest face used for inference.
 - Return the predicted class, confidence, all class scores, face-detection status, and model version.
 - Persist prediction metadata through an asynchronous FastAPI and PostgreSQL data layer.
 - Train, evaluate, inspect misclassifications, predict individual files, or run local webcam inference from Python scripts.
@@ -163,9 +163,15 @@ Example response shape:
     "sad": 0.02
   },
   "face_detected": true,
+  "face_box": {"x": 12, "y": 8, "width": 30, "height": 32},
+  "face_count": 2,
+  "image_width": 640,
+  "image_height": 480,
   "model_version": "emotion_cnn_20260530_193721_best.keras"
 }
 ```
+
+Uploads are limited to 5 MiB and 4096 × 4096 pixels. The API accepts actual JPEG, PNG, and WebP image data. Invalid files and images without a detected face return a `400` response; files over 5 MiB return `413`. The bounding box uses pixel coordinates in the decoded image, and `face_count` reports how many faces were detected.
 
 ### `GET /health`
 
