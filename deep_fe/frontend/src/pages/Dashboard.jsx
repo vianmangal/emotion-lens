@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Webcam from "react-webcam";
 import Sidebar from "../components/layouts/sidebar";
 import { predictEmotion } from "../api/predict";
 import { EMOJI_MAP } from "../utils/emotions";
+import { validateImageFile } from "../utils/imageValidation";
 
 const base64ToBlob = (base64, mimeType) => {
   const byteString = atob(base64.split(",")[1]);
@@ -35,13 +36,21 @@ export default function Dashboard() {
 
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const selectionToken = useRef(0);
 
   // Clear state when tab changes
   useEffect(() => {
     handleClear();
   }, [activeTab]);
 
+  useEffect(() => {
+    return () => {
+      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const handleClear = () => {
+    selectionToken.current += 1;
     setImage(null);
     setPreview(null);
     setResult(null);
@@ -54,19 +63,28 @@ export default function Dashboard() {
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     processFile(file);
   };
 
-  const processFile = (file) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Supported formats: JPG, PNG, JPEG, WEBP");
-      return;
-    }
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
+  const processFile = async (file, previewSource = null, captured = false) => {
+    const token = ++selectionToken.current;
+    setImage(null);
+    setPreview(null);
     setResult(null);
+    setWebcamCaptured(false);
     setError(null);
+
+    try {
+      await validateImageFile(file);
+      if (token !== selectionToken.current) return;
+      setImage(file);
+      setPreview(previewSource || URL.createObjectURL(file));
+      setWebcamCaptured(captured);
+    } catch (err) {
+      if (token === selectionToken.current) setError(err.message);
+    }
   };
 
   const handleDragOver = (e) => {
@@ -87,18 +105,14 @@ export default function Dashboard() {
     }
   };
 
-  const handleCapture = useCallback(() => {
+  const handleCapture = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {
-      setPreview(imageSrc);
       const blob = base64ToBlob(imageSrc, "image/jpeg");
       const file = new File([blob], "captured-frame.jpg", { type: "image/jpeg" });
-      setImage(file);
-      setResult(null);
-      setError(null);
-      setWebcamCaptured(true);
+      processFile(file, imageSrc, true);
     }
-  }, [webcamRef]);
+  };
 
   const handleAnalyze = async () => {
     if (!image) {
@@ -113,7 +127,7 @@ export default function Dashboard() {
       setResult(data);
     } catch (err) {
       console.error(err);
-      setError("Failed to analyze image. Please ensure the backend server is running.");
+      setError(err.response?.data?.detail || "Failed to analyze image. Please ensure the backend server is running.");
     } finally {
       setLoading(false);
     }
@@ -143,7 +157,7 @@ export default function Dashboard() {
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-8 md:py-8">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-10 sm:gap-8 sm:pb-16">
             {error && (
-              <div className="flex flex-col gap-3 rounded-xl border border-red-950 bg-red-950/20 px-4 py-4 text-xs text-red-200 transition-all duration-300 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div role="alert" className="flex flex-col gap-3 rounded-xl border border-red-950 bg-red-950/20 px-4 py-4 text-xs text-red-200 transition-all duration-300 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="flex items-start gap-2 sm:items-center">
                   <span className="text-red-400">⚠️</span>
                   <span>{error}</span>
@@ -183,12 +197,12 @@ export default function Dashboard() {
                         Drag & Drop or Click to Upload
                       </p>
                       <p className="text-[10px] text-zinc-500 mt-1 uppercase tracking-widest">
-                        JPG, PNG, JPEG, WEBP (Max 5MB)
+                        JPG, PNG, WEBP (Max 5 MiB, 4096 × 4096 pixels)
                       </p>
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         onChange={handleFileChange}
                         className="hidden"
                       />
@@ -315,10 +329,45 @@ export default function Dashboard() {
                     <CornerBrackets />
                     <img
                       src={preview}
-                      alt="Analyzed target face"
-                      className="max-h-full max-w-full object-contain"
+                      alt="Uploaded image"
+                      className="h-full w-full object-contain"
                     />
+                    {result.face_box && (
+                      <svg
+                        aria-label="Face used for this prediction"
+                        role="img"
+                        className="pointer-events-none absolute inset-0 h-full w-full"
+                        viewBox={`0 0 ${result.image_width} ${result.image_height}`}
+                        preserveAspectRatio="xMidYMid meet"
+                      >
+                        <rect
+                          x={result.face_box.x}
+                          y={result.face_box.y}
+                          width={result.face_box.width}
+                          height={result.face_box.height}
+                          fill="none"
+                          stroke="black"
+                          strokeWidth="6"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                        <rect
+                          x={result.face_box.x}
+                          y={result.face_box.y}
+                          width={result.face_box.width}
+                          height={result.face_box.height}
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="3"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </svg>
+                    )}
                   </div>
+                  {result.face_count > 1 && (
+                    <p className="mt-3 text-xs text-zinc-400">
+                      Analyzed the outlined, largest face of {result.face_count} detected faces.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-6">
@@ -341,7 +390,7 @@ export default function Dashboard() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <div className="border border-zinc-800 px-2.5 py-1 rounded text-[10px] font-semibold text-zinc-400 tracking-wider bg-zinc-900/30">
-                        {result.face_detected ? "FACE DETECTED ✓" : "NO FACE DETECTED"}
+                        FACE DETECTED ✓
                       </div>
                       <div className="border border-zinc-800 px-2.5 py-1 rounded text-[10px] font-semibold text-zinc-400 tracking-wider bg-zinc-900/30">
                         {result.model_version || "V1.0"}

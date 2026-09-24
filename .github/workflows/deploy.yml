@@ -3,6 +3,8 @@ name: Deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -36,6 +38,11 @@ jobs:
       - name: Backend import smoke test
         run: python -c "from backend.main import app; print(app is not None)"
 
+      - name: Backend validation tests
+        run: |
+          pip install pytest httpx
+          python -m pytest backend/tests -q
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -48,6 +55,7 @@ jobs:
           npm run build
 
   deploy-backend:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -116,6 +124,7 @@ jobs:
             --overrides '{"containerOverrides":[{"name":"backend","command":["alembic","-c","/app/alembic.ini","upgrade","head"]}]}'
 
   deploy-frontend:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: test
     steps:
