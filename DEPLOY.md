@@ -109,16 +109,23 @@ Set these repository secrets:
 - `AWS_ROLE_ARN` (GitHub OIDC role for deployments)
 - `FRONTEND_BUCKET` (emotionlens-frontend)
 - `CLOUDFRONT_DISTRIBUTION_ID` (from CloudFront console)
-- `ECS_SUBNETS` (comma-separated private subnet IDs)
+- `ECS_SUBNETS` (comma-separated public subnet IDs for the recovered deployment)
 - `ECS_SECURITY_GROUPS` (comma-separated ECS security group IDs)
 
 `VITE_API_URL` is optional. The recommended production setup is to proxy `/predict` and `/health` through CloudFront on the same site domain.
+
+The recovered deployment currently runs Fargate tasks in the public subnets
+with public IPs because its NAT gateways and VPC endpoints were removed. Set
+`ECS_SUBNETS` to those public subnet IDs for this environment. The ECS security
+group still allows inbound traffic only from the ALB security group. Reconcile
+the Terraform state and private-network design before applying the Terraform
+configuration again.
 
 Helper commands to fetch subnet and SG IDs:
 
 ```bash
 aws ec2 describe-subnets \
-  --filters "Name=tag:Name,Values=emotionlens-private-*" \
+  --filters "Name=tag:Name,Values=emotionlens-public-*" \
   --query "Subnets[*].SubnetId" \
   --output text
 
@@ -135,7 +142,7 @@ aws ecs run-task \
   --cluster emotionlens-cluster \
   --launch-type FARGATE \
   --task-definition emotionlens-backend \
-  --network-configuration "awsvpcConfiguration={subnets=[SUBNET_1,SUBNET_2],securityGroups=[SG_ID],assignPublicIp=DISABLED}" \
+  --network-configuration "awsvpcConfiguration={subnets=[PUBLIC_SUBNET_1,PUBLIC_SUBNET_2],securityGroups=[SG_ID],assignPublicIp=ENABLED}" \
   --overrides '{"containerOverrides":[{"name":"backend","command":["alembic","-c","/app/alembic.ini","upgrade","head"]}]}'
 ```
 
