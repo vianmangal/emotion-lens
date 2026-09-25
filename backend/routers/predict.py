@@ -22,8 +22,8 @@ async def predict_emotion(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Image must be 5 MiB or smaller.")
 
     try:
-        validate_image_bytes(image_bytes)
-        result = run_inference(image_bytes)
+        decoded_image_bytes = validate_image_bytes(image_bytes)
+        result = run_inference(decoded_image_bytes)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
