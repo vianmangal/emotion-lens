@@ -3,7 +3,7 @@ import Webcam from "react-webcam";
 import Sidebar from "../components/layouts/sidebar";
 import { predictEmotion } from "../api/predict";
 import { EMOJI_MAP } from "../utils/emotions";
-import { validateImageFile } from "../utils/imageValidation";
+import { isHeicFile, validateImageFile } from "../utils/imageValidation";
 
 const base64ToBlob = (base64, mimeType) => {
   const byteString = atob(base64.split(",")[1]);
@@ -80,7 +80,7 @@ export default function Dashboard() {
       await validateImageFile(file);
       if (token !== selectionToken.current) return;
       setImage(file);
-      setPreview(previewSource || URL.createObjectURL(file));
+      setPreview(isHeicFile(file) ? null : (previewSource || URL.createObjectURL(file)));
       setWebcamCaptured(captured);
     } catch (err) {
       if (token === selectionToken.current) setError(err.message);
@@ -178,7 +178,7 @@ export default function Dashboard() {
 
               {activeTab === "upload" ? (
                 <div>
-                  {!preview ? (
+                  {!image ? (
                     <div
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -197,12 +197,12 @@ export default function Dashboard() {
                         Drag & Drop or Click to Upload
                       </p>
                       <p className="text-[10px] text-zinc-500 mt-1 uppercase tracking-widest">
-                        JPG, PNG, WEBP (Max 5 MiB, 4096 × 4096 pixels)
+                        JPG, PNG, WEBP, HEIC (Max 5 MiB, 4096 × 4096 pixels)
                       </p>
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
                         onChange={handleFileChange}
                         className="hidden"
                       />
@@ -211,11 +211,14 @@ export default function Dashboard() {
                     <div className="flex flex-col gap-4">
                       <div className="relative flex aspect-video max-h-80 items-center justify-center overflow-hidden rounded-xl border border-zinc-900 bg-black">
                         <CornerBrackets />
-                        <img
-                          src={preview}
-                          alt="Uploaded facial preview"
-                          className="max-h-full max-w-full object-contain"
-                        />
+                        {preview ? (
+                          <img src={preview} alt="Uploaded facial preview" className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <div className="px-4 text-center text-xs text-zinc-400">
+                            <p className="break-all text-white">{image.name}</p>
+                            <p className="mt-2">HEIC preview unavailable. The image will be analyzed after upload.</p>
+                          </div>
+                        )}
                         {loading && (
                           <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center">
                             <div className="w-full h-0.5 bg-white/70 absolute animate-scan left-0 top-0 shadow-[0_0_10px_#fff]" />
@@ -327,12 +330,12 @@ export default function Dashboard() {
                   </div>
                   <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-zinc-900 bg-black">
                     <CornerBrackets />
-                    <img
-                      src={preview}
-                      alt="Uploaded image"
-                      className="h-full w-full object-contain"
-                    />
-                    {result.face_box && (
+                    {preview ? (
+                      <img src={preview} alt="Uploaded image" className="h-full w-full object-contain" />
+                    ) : (
+                      <div className="px-4 text-center text-xs text-zinc-400">{image.name}</div>
+                    )}
+                    {preview && result.face_box && (
                       <svg
                         aria-label="Face used for this prediction"
                         role="img"

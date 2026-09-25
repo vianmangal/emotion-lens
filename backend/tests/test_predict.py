@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
+from pillow_heif import register_heif_opener
 
 from backend.database import get_db
 from backend.main import app
@@ -37,6 +38,13 @@ def client(monkeypatch):
 def image_bytes(size=(64, 64), image_format="PNG"):
     output = BytesIO()
     Image.new("RGB", size, "white").save(output, format=image_format)
+    return output.getvalue()
+
+
+def heic_bytes():
+    register_heif_opener()
+    output = BytesIO()
+    Image.new("RGB", (64, 64), "white").save(output, format="HEIF")
     return output.getvalue()
 
 
@@ -86,12 +94,31 @@ def test_reports_the_largest_face_when_multiple_are_detected(client, monkeypatch
     assert len(session.records) == 1
 
 
+def test_heic_upload_is_decoded_for_inference(client, monkeypatch):
+    test_client, session = client
+    monkeypatch.setattr(face_detect, "_get_cascade", lambda: FakeCascade([(2, 3, 48, 48)]))
+
+    class FakeModel:
+        def predict(self, tensor, verbose=0):
+            assert tensor.shape == (1, 48, 48, 1)
+            return np.array([[0.1, 0.1, 0.6, 0.1, 0.1]])
+
+    monkeypatch.setattr(cnn_model, "get_model", lambda: FakeModel())
+    response = upload(test_client, heic_bytes(), "face.heic", "image/heic")
+
+    assert response.status_code == 200
+    assert response.json()["image_width"] == 64
+    assert response.json()["face_count"] == 1
+    assert session.records[0].image_filename == "face.heic"
+
+
 @pytest.mark.parametrize(
     ("data", "expected_status", "expected_detail"),
     [
         (b"", 400, "Empty image payload"),
         (b"x" * (5 * 1024 * 1024 + 1), 413, "5 MiB or smaller"),
         (image_bytes(image_format="GIF"), 400, "Supported formats"),
+        (b"%PDF-1.4\nnot a valid PDF", 400, "Unable to decode image"),
         (b"not an image", 400, "Unable to decode image"),
         (image_bytes(size=(4097, 1)), 400, "Image dimensions"),
     ],
