@@ -103,25 +103,43 @@ jobs:
             --output text)
           echo "NEW_TASK_DEF=$NEW_TASK_DEF" >> $GITHUB_ENV
 
-      - name: Update ECS service
-        run: |
-          aws ecs update-service \
-            --cluster "$ECS_CLUSTER" \
-            --service "$ECS_SERVICE" \
-            --task-definition "$NEW_TASK_DEF" \
-            --force-new-deployment
-
       - name: Run Alembic migrations
         env:
           ECS_SUBNETS: ${{ secrets.ECS_SUBNETS }}
           ECS_SECURITY_GROUPS: ${{ secrets.ECS_SECURITY_GROUPS }}
         run: |
-          aws ecs run-task \
+          TASK_ARN=$(aws ecs run-task \
             --cluster "$ECS_CLUSTER" \
             --launch-type FARGATE \
             --task-definition "$NEW_TASK_DEF" \
-            --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUPS],assignPublicIp=DISABLED}" \
-            --overrides '{"containerOverrides":[{"name":"backend","command":["alembic","-c","/app/alembic.ini","upgrade","head"]}]}'
+            --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUPS],assignPublicIp=ENABLED}" \
+            --overrides '{"containerOverrides":[{"name":"backend","command":["alembic","-c","/app/alembic.ini","upgrade","head"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+          if [ "$TASK_ARN" = "None" ] || [ -z "$TASK_ARN" ]; then
+            echo "Failed to start the migration task" >&2
+            exit 1
+          fi
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" \
+            --query "tasks[0].containers[?name=='$CONTAINER_NAME'].exitCode | [0]" --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration task failed with exit code $EXIT_CODE" >&2
+            exit 1
+          fi
+
+      - name: Update ECS service
+        env:
+          ECS_SUBNETS: ${{ secrets.ECS_SUBNETS }}
+          ECS_SECURITY_GROUPS: ${{ secrets.ECS_SECURITY_GROUPS }}
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$NEW_TASK_DEF" \
+            --desired-count 1 \
+            --network-configuration "awsvpcConfiguration={subnets=[$ECS_SUBNETS],securityGroups=[$ECS_SECURITY_GROUPS],assignPublicIp=ENABLED}" \
+            --force-new-deployment
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
 
   deploy-frontend:
     if: github.event_name == 'push'
