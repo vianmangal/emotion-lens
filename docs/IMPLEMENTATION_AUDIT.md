@@ -6,7 +6,7 @@ Updated 2026-10-22 against `PRD-LIVE-SAFETY.md` v1.0. This audit preserves the P
 
 | Requirement | Current evidence | Result |
 | --- | --- | --- |
-| MVP 1: local setup without cloud/database/paid credentials | SQLite default; lazy expression model; local run helper; real SQLite upload test; removed deployment files; Ubuntu CI for the initial implementation | Implemented; updated CI run tracked separately |
+| MVP 1: local setup without cloud/database/paid credentials | SQLite default; lazy expression model; local run helper; real SQLite upload test; removed deployment files; Ubuntu CI for hardening commit 056abf2 | Implemented; physical setup limits below |
 | MVP 2 / journey 1–3: camera selection, preview, explicit Start/Stop and Arm/Disarm | Dedicated LiveSafety view and useSafetySession hook; Chromium fake-device lifecycle and permission-recovery tests | Implemented; physical device selection/permission remains unverified |
 | MVP 3 / journey 4: multiple people and temporal striking classification | Actual MediaPipe pose model and STGCN checkpoint load/run; trajectory history; same-pair selection; upstream class-map regressions | Implemented experimentally; human striking recognition is unverified |
 | MVP 4 / journey 7–8: readiness, tracking quality, warm-up, candidate and abstention | Separate status fields; visibility-reset and stale-first-frame tests; candidate cannot enqueue; frozen capture watchdog and heartbeats | Engineering verified for tested cases; real visibility coverage unmeasured |
@@ -49,7 +49,7 @@ Uncertain camera evidence cancels only automatic actions for that session; it ca
 ## Evaluation, commands and deliverables
 
 - README, LOCAL_SETUP, SAFETY_MODEL_REPORT, SAFETY_EVALUATION, artifact/dependency manifests, benchmark output, and the original PRD/handoff are present. No obsolete deployment workflow or runtime cloud provisioning path remains.
-- Local `python -m pytest`, frontend build and Playwright suite pass as recorded in SAFETY_EVALUATION. Existing CI passed on the initial implementation; later commits require their own hosted result.
+- Local `python -m pytest`, frontend build and Playwright suite pass as recorded in SAFETY_EVALUATION. Ubuntu CI passed on hardening commit `056abf2`, including backend tests, frontend build and browser checks ([run 39667723484](https://github.com/vianmangal/emotion-lens/actions/runs/39667723484)).
 - Model downloader and isolated setup were exercised. Replay sampling/timestamps, manifest leakage/duplication checks, matching, and frozen-development checks have deterministic tests. Replay/evaluation on a real labeled corpus remains unperformed; empty manifests correctly refuse to produce accuracy metrics.
 - A non-contact demo procedure is documented. Its ordinary-gesture → directed motion → incident → clip → dry-run sequence has only synthetic policy/integration evidence, not a completed human demonstration.
 - An initial v2 generated-input 30-minute soak completed. The final source-fingerprinted v3 soak is tracked separately; a smoke run is not a 30-minute pass. Generated inputs cannot prove physical-camera performance or human accuracy.
