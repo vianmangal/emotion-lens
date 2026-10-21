@@ -53,3 +53,10 @@ models/
 
 vian1
 Bruno0109
+
+.venv-safety/
+.venv-model/
+playwright-report/
+test-results/
+
+!.env.example

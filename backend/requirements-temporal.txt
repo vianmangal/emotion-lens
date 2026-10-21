@@ -1,0 +1,10 @@
+-r requirements-safety.txt
+torch==2.5.1
+torchvision==0.20.1
+mmengine==0.10.7
+mmcv-lite==2.1.0
+einops==0.8.0
+scipy==1.14.1
+importlib-metadata==8.5.0
+# MMAction2 is installed from pinned source by scripts/setup_temporal.py.
+# Its wheel omits DRN; its generic dependencies request decord without macOS ARM wheels.

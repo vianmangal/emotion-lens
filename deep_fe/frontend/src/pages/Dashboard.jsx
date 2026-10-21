@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import LiveSafety from "./LiveSafety";
 import Webcam from "react-webcam";
 import Sidebar from "../components/layouts/sidebar";
 import { predictEmotion } from "../api/predict";
@@ -25,7 +26,7 @@ const CornerBrackets = () => (
 );
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("upload");
+  const [activeTab, setActiveTab] = useState("safety");
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
@@ -156,6 +157,7 @@ export default function Dashboard() {
 
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-8 md:py-8">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-10 sm:gap-8 sm:pb-16">
+            {activeTab === "safety" ? <LiveSafety /> : <>
             {error && (
               <div role="alert" className="flex flex-col gap-3 rounded-xl border border-red-950 bg-red-950/20 px-4 py-4 text-xs text-red-200 transition-all duration-300 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="flex items-start gap-2 sm:items-center">
@@ -434,6 +436,7 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+            </>}
           </div>
         </div>
       </div>

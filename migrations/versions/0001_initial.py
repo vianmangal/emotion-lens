@@ -9,6 +9,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if op.get_bind().dialect.name == 'sqlite':
+        from backend.models.db_models import Prediction
+        Prediction.__table__.create(op.get_bind(), checkfirst=True)
+        return
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -49,6 +53,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    if op.get_bind().dialect.name == 'sqlite':
+        op.drop_table('predictions')
+        return
     op.drop_index("ix_predictions_created_at", table_name="predictions")
     op.drop_index("ix_predictions_user_id", table_name="predictions")
     op.drop_table("predictions")

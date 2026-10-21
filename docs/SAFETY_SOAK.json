@@ -1,0 +1,366 @@
+{
+  "state": "completed",
+  "pid": 98996,
+  "source": "generated static noise JPEG; no camera or people",
+  "scope": "real localhost WebSocket, image decode, pose model, policy, optional clip ring and SQLite runtime; no human action accuracy",
+  "model": "stgcn",
+  "requested_seconds": 1800.0,
+  "calls_enabled": false,
+  "detector_qualified": false,
+  "frames": 17988,
+  "rss_samples": [
+    {
+      "elapsed_seconds": 0.045,
+      "rss_bytes": 557613056,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 30.136,
+      "rss_bytes": 337969152,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 60.141,
+      "rss_bytes": 121716736,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 90.233,
+      "rss_bytes": 119603200,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 120.238,
+      "rss_bytes": 115736576,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 150.338,
+      "rss_bytes": 117178368,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 180.339,
+      "rss_bytes": 117571584,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 210.436,
+      "rss_bytes": 115376128,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 240.437,
+      "rss_bytes": 114507776,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 270.535,
+      "rss_bytes": 112820224,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 300.538,
+      "rss_bytes": 111689728,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 330.571,
+      "rss_bytes": 111263744,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 360.574,
+      "rss_bytes": 111362048,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 390.674,
+      "rss_bytes": 110854144,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 420.724,
+      "rss_bytes": 112984064,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 450.728,
+      "rss_bytes": 112132096,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 480.732,
+      "rss_bytes": 104005632,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 510.771,
+      "rss_bytes": 299712512,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 540.811,
+      "rss_bytes": 94060544,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 570.848,
+      "rss_bytes": 103497728,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 600.851,
+      "rss_bytes": 102678528,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 630.956,
+      "rss_bytes": 101629952,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 661.053,
+      "rss_bytes": 97697792,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 691.154,
+      "rss_bytes": 95158272,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 721.253,
+      "rss_bytes": 99368960,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 751.349,
+      "rss_bytes": 94961664,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 781.353,
+      "rss_bytes": 92946432,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 811.446,
+      "rss_bytes": 99532800,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 841.498,
+      "rss_bytes": 98500608,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 871.503,
+      "rss_bytes": 99762176,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 901.603,
+      "rss_bytes": 99827712,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 931.605,
+      "rss_bytes": 99139584,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 961.703,
+      "rss_bytes": 99418112,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 991.803,
+      "rss_bytes": 99237888,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1021.952,
+      "rss_bytes": 98729984,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1052.035,
+      "rss_bytes": 99991552,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1082.045,
+      "rss_bytes": 99074048,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1112.134,
+      "rss_bytes": 99205120,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1142.142,
+      "rss_bytes": 98533376,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1172.142,
+      "rss_bytes": 98516992,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1202.237,
+      "rss_bytes": 97271808,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1232.251,
+      "rss_bytes": 98091008,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1262.258,
+      "rss_bytes": 100646912,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1292.266,
+      "rss_bytes": 101187584,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1322.278,
+      "rss_bytes": 99942400,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1352.377,
+      "rss_bytes": 99532800,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1382.38,
+      "rss_bytes": 100483072,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1412.44,
+      "rss_bytes": 100597760,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1442.443,
+      "rss_bytes": 98304000,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1472.542,
+      "rss_bytes": 98533376,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1502.641,
+      "rss_bytes": 97943552,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1532.728,
+      "rss_bytes": 94240768,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1562.827,
+      "rss_bytes": 90685440,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1592.886,
+      "rss_bytes": 91144192,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1622.893,
+      "rss_bytes": 97550336,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1652.897,
+      "rss_bytes": 97959936,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1682.987,
+      "rss_bytes": 99024896,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1713.09,
+      "rss_bytes": 95109120,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1743.117,
+      "rss_bytes": 93716480,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1773.185,
+      "rss_bytes": 94699520,
+      "disk_bytes": 45056
+    },
+    {
+      "elapsed_seconds": 1800.09,
+      "rss_bytes": 91602944,
+      "disk_bytes": 45056
+    }
+  ],
+  "model_version": "mmaction2-stgcn-ntu60-coco17-experimental-v3",
+  "model_identity": {
+    "pipeline_sha256": "df57c2e7a70299f8fd881e567298e149415fc5d838f71d9ae8d6cde4391f44d4",
+    "pose_sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a",
+    "temporal_sha256": "484a394a50246032fef9694396096902909784e8618ccc845d2859dc2b952fea",
+    "threshold_version": "experimental-37d74eccb434"
+  },
+  "runtime_sources": {
+    "backend/config.py": "4cb65089bd90ae7f174192d77ef3a976cb5e0a7e2669487c488f929b201baa17",
+    "backend/database.py": "4e49eb35ccef5e95b2025e7b78b7dcf164c3f60e296062212a60e3cab91bb7b9",
+    "backend/main.py": "69a20a23644b7ea5a6d80325ae51fd29a72f5ec922a2f5334c1d95df6dea7d67",
+    "backend/routers/safety.py": "f56573696af2b3b7009191a09872d8442e5142f0182bec92a61834f5e9feceb4",
+    "backend/safety/schemas.py": "25e45771e6c7413bdb9c767db91d4995e8f71102e9c38fbc375c9a0a8670efd0",
+    "scripts/soak_test.py": "cd03947622cd7e75cb2f99f775a78fbfda13f2604680d8c82982b16f92477f0e",
+    "backend/safety/sessions.py": "4aabdf35898e202681eaf9ed3803304c559f255ff8933f01ea8322cfdf7d66f5",
+    "backend/safety/frame_buffer.py": "8eff86066409a610e7c437cbcaf03cf63460b69d00f5f167599b54ef2d4be82b",
+    "backend/safety/recording.py": "4a1c7bb3ea506fc9c2f7c8ed63a5270a66fa89557cfb9d590017441278105a68",
+    "backend/safety/retention.py": "6459e2e2af09aa9ddc4e40485ea0bc6fc3395e4c65ebb1a45785d474672f0198",
+    "backend/safety/actions/dispatcher.py": "f61bc2d729a271864db1d0d9782396db9c60958b9e4a97876528f9c43363be51"
+  },
+  "threshold_version": "experimental-37d74eccb434",
+  "elapsed_seconds": 1800.09,
+  "max_clip_frames": 45,
+  "max_clip_bytes": 12421125,
+  "passed": true,
+  "actual_fps": 9.992833691648752,
+  "rss_growth_after_warmup_bytes": 0,
+  "max_disk_bytes": 45056,
+  "disk_limit_bytes": 591396864,
+  "memory_growth_limit_bytes": 67108864,
+  "frame_age_p95_ms": 46.0,
+  "timing_sample_scope": "last 2000 frame results; RSS sampled every 30 seconds",
+  "verification": {
+    "runtime_commit": "056abf2786366c9ce71a3c6887741fe9f6b8d35c",
+    "verified_against_commit": "6fcd21d8df913af4f390788144da6092b69bc9ce",
+    "model_and_runtime_sources_match": true,
+    "post_warmup_reference_elapsed_seconds": 120.238,
+    "post_warmup_reference_rss_bytes": 115736576,
+    "post_warmup_peak_rss_bytes": 299712512,
+    "post_warmup_end_rss_bytes": 91602944,
+    "post_warmup_growth_from_reference_bytes": 183975936,
+    "source_limit": "Generated static noise input; no camera, detected people, human action accuracy, incident encoding, or provider calls.",
+    "rss_summary_definition": "Raw rss_growth_after_warmup_bytes compares the whole-run sampled peak against the peak during the initial 120 seconds, not against a single post-warmup baseline. See all samples and the independent post-warmup measurements here.",
+    "post_warmup_peak_elapsed_seconds": 510.771,
+    "last_ten_minutes_rss_min_bytes": 90685440,
+    "last_ten_minutes_rss_max_bytes": 101187584,
+    "memory_observation": "One transient post-warmup sampled RSS spike; next sample returned below 100 MiB. No sustained upward trend was observed. RSS sampled every 30 seconds; this is not a full physical-memory measurement."
+  }
+}

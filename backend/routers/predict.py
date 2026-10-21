@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from backend.database import get_db
 from backend.models.db_models import Prediction
@@ -23,9 +24,12 @@ async def predict_emotion(
 
     try:
         decoded_image_bytes = validate_image_bytes(image_bytes)
-        result = run_inference(decoded_image_bytes)
+        result = await run_in_threadpool(run_inference, decoded_image_bytes)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     record = Prediction(
         image_filename=image.filename or "upload.jpg",
