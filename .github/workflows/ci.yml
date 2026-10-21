@@ -1,0 +1,23 @@
+name: Local app checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r backend/requirements-test.txt
+      - run: python -m pytest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: deep_fe/frontend/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: deep_fe/frontend
+      - run: npx playwright install --with-deps chromium && npm run test:e2e
+        working-directory: deep_fe/frontend

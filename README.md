@@ -1,226 +1,84 @@
-<div align="center">
-
 # EmotionLens
 
-**A full-stack facial-expression classifier for uploaded images and webcam captures.**
+A local FastAPI + React app for facial-expression analysis and **experimental live webcam motion monitoring**. It runs on one computer with SQLite and local files. No AWS account, PostgreSQL, Docker, hosting, or paid API is needed.
 
-Built with TensorFlow, FastAPI, React, PostgreSQL, and AWS infrastructure as code.
+Live Safety analyzes a sequence of person poses and flags **“Possible striking motion — review footage.”** It does not establish intent or prove an assault. Facial-expression scores never enter safety decisions.
 
-</div>
+## Start locally
 
-EmotionLens detects the largest visible face, converts it to the model's `48 × 48` grayscale input, and predicts one of five expression classes: **angry**, **fear**, **happy**, **neutral**, or **sad**. The application supports file uploads and webcam captures, returns confidence scores for every class, and stores prediction records in PostgreSQL.
-
-> [!IMPORTANT]
-> Facial-expression classification is probabilistic and can be affected by lighting, pose, image quality, demographic bias, and the training data. EmotionLens is an educational project—not a medical, psychological, safety, employment, or identity-assessment tool.
-
-## Features
-
-- Upload JPG, PNG, WebP, or HEIC images up to 5 MiB and 4096 × 4096 pixels through a responsive drag-and-drop interface.
-- Capture a frame directly from the browser using the webcam.
-- Reject images without a detected face; when several faces are present, outline the largest face used for inference.
-- Return the predicted class, confidence, all class scores, face-detection status, and model version.
-- Persist prediction metadata through an asynchronous FastAPI and PostgreSQL data layer.
-- Train, evaluate, inspect misclassifications, predict individual files, or run local webcam inference from Python scripts.
-- Provision a production AWS stack with Terraform and deploy through GitHub Actions.
-
-## Model snapshot
-
-The latest checked-in evaluation report covers 6,236 samples:
-
-| Metric | Score |
-| --- | ---: |
-| Accuracy | 61.45% |
-| Macro F1 | 59.03% |
-| Weighted F1 | 61.76% |
-| Best-performing class | Happy — 84.65% F1 |
-
-
-These numbers describe one stored evaluation run and should not be interpreted as general real-world reliability.
-
-## Architecture
-
-```text
-React + Vite UI
-      |
-      | image upload / webcam frame
-      v
-FastAPI /predict
-      |
-      +--> OpenCV face detection and 48x48 preprocessing
-      +--> TensorFlow CNN inference
-      +--> PostgreSQL prediction record
-      |
-      v
-Prediction, confidence, class scores, and model metadata
-```
-
-Production infrastructure is defined in Terraform and uses CloudFront, S3, WAF, an HTTPS Application Load Balancer, ECS Fargate, ECR, RDS PostgreSQL, Secrets Manager, KMS, private networking, and GitHub Actions with AWS OIDC.
-
-## Tech stack
-
-| Area | Technology |
-| --- | --- |
-| Model | TensorFlow / Keras CNN |
-| Image processing | OpenCV, NumPy |
-| API | FastAPI, Gunicorn, Uvicorn |
-| Persistence | PostgreSQL, SQLAlchemy async, Alembic |
-| Frontend | React, Vite, Tailwind CSS, React Webcam |
-| Local infrastructure | Docker Compose |
-| Cloud infrastructure | AWS, Terraform, GitHub Actions |
-
-## Run the application locally
-
-### Prerequisites
-
-- Python 3.11 recommended
-- Node.js 18 or newer
-- npm
-- Docker with Docker Compose
-
-### 1. Clone and install the backend
+Python 3.11, Node.js 22 or newer, and a desktop Chromium browser are recommended. From the repository root:
 
 ```bash
-git clone https://github.com/vianmangal/emotion-lens.git
-cd emotion-lens
-
-python -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
+python3.11 -m venv .venv-safety
+source .venv-safety/bin/activate
+pip install -r backend/requirements-safety.txt
+python scripts/download_models.py
+python scripts/run_local.py
 ```
 
-On Windows, activate the environment with `.venv\Scripts\activate`.
-
-### 2. Start PostgreSQL
-
-```bash
-docker compose up -d db
-```
-
-### 3. Configure the API
-
-Create a root `.env` file:
-
-```dotenv
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/emotiondb
-MODEL_PATH=models/emotion_cnn_20260530_193721_best.keras
-CORS_ALLOW_ORIGINS=["http://localhost:5173"]
-```
-
-Apply the database migration and start FastAPI:
-
-```bash
-alembic upgrade head
-uvicorn backend.main:app --reload
-```
-
-The health endpoint is available at `http://localhost:8000/health`.
-
-### 4. Start the frontend
-
-In a second terminal:
+In another terminal:
 
 ```bash
 cd deep_fe/frontend
 npm ci
-```
-
-Create `deep_fe/frontend/.env.local`:
-
-```dotenv
-VITE_API_URL=http://localhost:8000
-```
-
-Then run:
-
-```bash
 npm run dev
 ```
 
-Open the URL printed by Vite and choose image upload or webcam capture.
-
-## API
-
-### `POST /predict`
-
-Send an image as multipart form data under the `image` field:
+Open **http://127.0.0.1:5173**, select **Live Safety**, click **Start camera**, then **Arm monitoring**. Camera access and microphone capture are off initially; audio capture is never requested. The default detector is an experimental directed-wrist trajectory baseline. For the pretrained temporal classifier:
 
 ```bash
-curl -X POST http://localhost:8000/predict \
-  -F "image=@path/to/face.jpg"
+# Explicit isolated setup; downloads pinned code and a checksum-verified checkpoint.
+.venv-safety/bin/python scripts/setup_temporal.py
+# Stop the other backend before starting this one.
+.venv-model/bin/python scripts/run_local.py --model stgcn
 ```
 
-Example response shape:
+See [Local setup](docs/LOCAL_SETUP.md) for camera recovery, optional expression weights, phone configuration, migrations, and cleanup.
 
-```json
-{
-  "emotion": "happy",
-  "confidence": 0.91,
-  "all_scores": {
-    "angry": 0.01,
-    "fear": 0.02,
-    "happy": 0.91,
-    "neutral": 0.04,
-    "sad": 0.02
-  },
-  "face_detected": true,
-  "face_box": {"x": 12, "y": 8, "width": 30, "height": 32},
-  "face_count": 2,
-  "image_width": 640,
-  "image_height": 480,
-  "model_version": "emotion_cnn_20260530_193721_best.keras"
-}
-```
+## What is implemented
 
-Uploads are limited to 5 MiB and 4096 × 4096 pixels. The API accepts actual JPEG, PNG, WebP, and HEIC image data. HEIC uploads are converted to RGB for inference; the browser shows the filename when it cannot preview HEIC. Invalid files and images without a detected face return a `400` response; files over 5 MiB return `413`. The bounding box uses pixel coordinates in the decoded image, and `face_count` reports how many faces were detected.
+- Live webcam selection and preview; explicit Start/Stop and Arm/Disarm.
+- Local multi-person pose estimation, session-local tracking, and interchangeable temporal models: a trajectory baseline and pretrained STGCN/NTU60 adapter.
+- Conservative abstention, candidate/episode/cooldown policy, fresh-frame checks, and one active session with bounded processing.
+- SQLite incident history, review labels, and event deletion.
+- Opt-in pre/post event VP8/WebM clips, local sound, quota and retention.
+- Cancellable phone countdowns; offline dry runs; server-only ElevenLabs native Twilio adapter for explicit tests.
+- Restart recovery, persistent call deduplication/cooldown/quota, no automatic retry on ambiguous delivery.
+- Original image upload and webcam snapshot views. Optional TensorFlow and local expression weights are loaded only when requested.
 
-### `GET /health`
+**Detector qualification remains unmet.** Live monitoring works experimentally; there is no measured held-out precision/recall or real webcam accuracy claim. Automatic real calls are locked in code. Explicit configured real test calls are available independently. No real call was placed during implementation. See [model feasibility](docs/SAFETY_MODEL_REPORT.md) and [actual verification results](docs/SAFETY_EVALUATION.md).
 
-Returns the API status and whether the model loaded successfully.
-
-## Model tooling
-
-The standalone scripts under `src/` support the model-development workflow. Install the additional training and analysis packages when needed:
+## Checks
 
 ```bash
-pip install tensorflow opencv-python matplotlib pandas numpy scikit-learn
+.venv-safety/bin/python -m pip install -r backend/requirements-test.txt
+.venv-safety/bin/python -m pytest
+cd deep_fe/frontend
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
+
+Tests use mocks/fake camera input, temporary SQLite databases, and generated media. They never contact the phone provider. Replay/evaluation helpers accept local videos and cannot auto-call:
 
 ```bash
-# Train
-python src/train.py
-
-# Evaluate the latest model
-python src/evaluate.py
-
-# Predict one image
-python src/predict.py --image-path path/to/face.jpg
-
-# Run real-time local webcam inference; press q to quit
-python src/webcam.py
+.venv-safety/bin/python scripts/replay.py path/to/video.mp4 --output data/replay.json
+.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --output data/evaluation.json
 ```
 
-The repository references the [Emotions dataset](https://www.kaggle.com/datasets/nelgiriyewithana/emotions) and [FER-2013](https://www.kaggle.com/datasets/msambare/fer2013) for experimentation.
-
-## Repository structure
+## Architecture
 
 ```text
-emotion-lens/
-├── backend/              # FastAPI application, inference, persistence, and container
-├── deep_fe/frontend/     # React application
-├── infra/                # Terraform AWS infrastructure
-├── migrations/           # Alembic database migrations
-├── models/               # Model artifacts and evaluation reports
-├── src/                  # Training, evaluation, prediction, and webcam scripts
-├── docker-compose.yml    # Local PostgreSQL
-└── DEPLOY.md             # Production deployment and migration guide
+Browser webcam → bounded WebSocket → person poses / tracking → temporal classifier
+                                                           → episode policy
+                                                           → SQLite incidents
+                                                           → optional local clips
+                                                           → dry-run action / phone adapter
+Uploaded image → face preprocessing → optional TensorFlow CNN → SQLite prediction
 ```
 
-## Deployment
+Backend: `backend/`; UI: `deep_fe/frontend/`; schema changes: `migrations/`; explicit setup/evaluation: `scripts/`; private local runtime data: ignored `data/`.
 
-See [`DEPLOY.md`](DEPLOY.md) for the AWS prerequisites, encrypted Terraform state setup, model upload, database migration, GitHub Actions secrets, and production rollout steps.
+The original expression report covers 6,236 samples: 61.45% accuracy, 59.03% macro F1, 61.76% weighted F1. These are historical expression results and say nothing about action detection. Original training/evaluation scripts and tracked expression weights are preserved.
 
-Review every Terraform plan before applying it. Existing RDS and ECR resources require controlled migrations when changing encryption settings.
-
-## Privacy
-
-The API stores the image filename, prediction, confidence, and class scores. Review the schema and retention requirements before deploying publicly, and do not retain or process facial images without appropriate user notice and consent.
+The [Live Safety PRD](docs/PRD-LIVE-SAFETY.md) records the requirements; [the original handoff](docs/IMPLEMENTATION-HANDOFF.md) is historical implementation context. Obsolete repository deployment files were removed. No cloud account resources were accessed or changed.

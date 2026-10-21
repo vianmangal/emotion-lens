@@ -1,7 +1,6 @@
 from pathlib import Path
 import threading
 
-from tensorflow.keras.models import load_model
 
 from backend.config import settings
 
@@ -15,7 +14,13 @@ def load_model_once():
     if _model is None:
         with _lock:
             if _model is None:
-                _model = load_model(settings.MODEL_PATH)
+                if not settings.MODEL_PATH or not Path(settings.MODEL_PATH).is_file():
+                    raise RuntimeError('Expression model unavailable. Configure local MODEL_PATH.')
+                try:
+                    from tensorflow.keras.models import load_model
+                    _model = load_model(settings.MODEL_PATH)
+                except Exception as exc:
+                    raise RuntimeError('Expression model unavailable. Check weights and optional TensorFlow installation.') from exc
     return _model
 
 

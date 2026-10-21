@@ -1,4 +1,5 @@
 from io import BytesIO
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -29,7 +30,7 @@ def client(monkeypatch):
     session = FakeSession()
     app.dependency_overrides[get_db] = lambda: session
     try:
-        with TestClient(app) as test_client:
+        with TestClient(app, base_url="http://localhost") as test_client:
             yield test_client, session
     finally:
         app.dependency_overrides.clear()
@@ -42,10 +43,8 @@ def image_bytes(size=(64, 64), image_format="PNG"):
 
 
 def heic_bytes():
-    register_heif_opener()
-    output = BytesIO()
-    Image.new("RGB", (64, 64), "white").save(output, format="HEIF")
-    return output.getvalue()
+    # Decoder fixture: avoid starting a native HEIF encoder alongside the VP8 probe.
+    return (Path(__file__).parent / 'fixtures/white-64.heic').read_bytes()
 
 
 def upload(client, data, filename="face.png", content_type="image/png"):

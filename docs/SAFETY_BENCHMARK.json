@@ -1,0 +1,111 @@
+{
+  "data": "Generated blank frames and synthetic skeletons ONLY; no people or accuracy evaluation",
+  "python": "3.11.15",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "packages": {
+    "mediapipe": "0.10.21",
+    "numpy": "1.26.4",
+    "opencv-contrib-python": "4.11.0.86",
+    "torch": "2.5.1",
+    "torchvision": "0.20.1",
+    "mmengine": "0.10.7",
+    "mmcv-lite": "2.1.0",
+    "fastapi": "0.111.0",
+    "SQLAlchemy": "2.0.30",
+    "aiosqlite": "0.20.0"
+  },
+  "pose_blank_frame_median_ms": 6.280062501900829,
+  "pose_blank_frame_p95_ms": 6.640239400439896,
+  "peak_process_rss_bytes": 538968064,
+  "synthetic_temporal_comparison": {
+    "stationary": {
+      "baseline": {
+        "ready": true,
+        "score": 0.0,
+        "directed": false,
+        "reasons": [
+          "Experimental trajectory baseline; review footage"
+        ],
+        "median_ms": 0.04893750883638859,
+        "p95_ms": 0.05479374813148751
+      },
+      "stgcn": {
+        "ready": true,
+        "score": 0.0,
+        "directed": false,
+        "reasons": [
+          "NTU60 class index 53; experimental model score"
+        ],
+        "median_ms": 25.445457999012433,
+        "p95_ms": 30.70231684469036
+      }
+    },
+    "directed_arm": {
+      "baseline": {
+        "ready": true,
+        "score": 0.9295084918742473,
+        "directed": true,
+        "reasons": [
+          "Experimental trajectory baseline; review footage"
+        ],
+        "median_ms": 0.10897899483097717,
+        "p95_ms": 0.11279144455329515
+      },
+      "stgcn": {
+        "ready": true,
+        "score": 0.0,
+        "directed": true,
+        "reasons": [
+          "NTU60 class index 53; experimental model score"
+        ],
+        "median_ms": 25.101500505115837,
+        "p95_ms": 30.154456253512762
+      }
+    },
+    "wave": {
+      "baseline": {
+        "ready": true,
+        "score": 0.0,
+        "directed": false,
+        "reasons": [
+          "Experimental trajectory baseline; review footage"
+        ],
+        "median_ms": 0.049208996642846614,
+        "p95_ms": 0.05004740160075016
+      },
+      "stgcn": {
+        "ready": true,
+        "score": 0.0,
+        "directed": false,
+        "reasons": [
+          "NTU60 class index 53; experimental model score"
+        ],
+        "median_ms": 25.29356200102484,
+        "p95_ms": 30.462610046379268
+      }
+    },
+    "lone_person": {
+      "baseline": {
+        "ready": false,
+        "score": 0.0,
+        "directed": false,
+        "reasons": [
+          "Two visible participants required"
+        ],
+        "median_ms": 0.0012710006558336318,
+        "p95_ms": 0.0013524499081540853
+      },
+      "stgcn": {
+        "ready": false,
+        "score": 0.0,
+        "directed": false,
+        "reasons": [
+          "Two visible participants required"
+        ],
+        "median_ms": 0.0015419936971738935,
+        "p95_ms": 0.001624997821636498
+      }
+    }
+  },
+  "qualified": false
+}

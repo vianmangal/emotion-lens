@@ -1,0 +1,14 @@
+[
+  {
+    "name": "pose_landmarker_lite.task",
+    "url": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+    "sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a",
+    "bytes": 5777746
+  },
+  {
+    "name": "stgcn_ntu60.pth",
+    "url": "https://download.openmmlab.com/mmaction/v1.0/skeleton/stgcn/stgcn_8xb16-joint-u100-80e_ntu60-xsub-keypoint-2d/stgcn_8xb16-joint-u100-80e_ntu60-xsub-keypoint-2d_20221129-484a394a.pth",
+    "sha256": "484a394a50246032fef9694396096902909784e8618ccc845d2859dc2b952fea",
+    "bytes": 12479895
+  }
+]

@@ -1,7 +1,9 @@
 export default function Sidebar({ activeTab, setActiveTab }) {
   const tabs = [
+    { id: "safety", label: "Live Safety", icon: "◎" },
+    { id: "history", label: "Incident History", icon: "≡" },
     { id: "upload", label: "Upload Image", icon: "↑" },
-    { id: "webcam", label: "Live Webcam", icon: "◉" },
+    { id: "webcam", label: "Webcam Snapshot", icon: "◉" },
   ];
 
   const tabClassName = (tabId) =>
@@ -58,7 +60,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         </nav>
 
         <div className="border-t border-zinc-900 px-4 py-5 text-[9px] text-zinc-600">
-          <div>HOST: vian1.tech</div>
+          <div>LOCAL COMPUTER</div>
         </div>
       </aside>
     </>
