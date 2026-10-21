@@ -46,7 +46,7 @@ See [Local setup](docs/LOCAL_SETUP.md) for camera recovery, optional expression 
 - Restart recovery, persistent call deduplication/cooldown/quota, no automatic retry on ambiguous delivery.
 - Original image upload and webcam snapshot views. Optional TensorFlow and local expression weights are loaded only when requested.
 
-**Detector qualification remains unmet.** Live monitoring works experimentally; there is no measured held-out precision/recall or real webcam accuracy claim. Automatic real calls are locked in code. Explicit configured real test calls are available independently. No real call was placed during implementation. See [model feasibility](docs/SAFETY_MODEL_REPORT.md), [actual verification results](docs/SAFETY_EVALUATION.md), and the [requirement audit](docs/IMPLEMENTATION_AUDIT.md).
+**Detector qualification remains unmet.** Live monitoring works experimentally; there is no measured held-out precision/recall or real webcam accuracy claim. Automatic real calls are locked in code. Explicit configured real test calls are available independently. No real call was placed during implementation. See [model feasibility](docs/SAFETY_MODEL_REPORT.md), [actual verification results](docs/SAFETY_EVALUATION.md), the [requirement audit](docs/IMPLEMENTATION_AUDIT.md), and the [30-minute engineering run](docs/SAFETY_SOAK.json).
 
 ## Checks
 

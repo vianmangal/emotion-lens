@@ -22,7 +22,7 @@ npm run test:e2e --prefix deep_fe/frontend
 | A4 call gates | Unqualified automatic-real mode rejects arm; uncertainty/lone/undirected/gaps abstain; replay cannot enqueue automatic calls; real manual test needs explicit acknowledgement/configuration |
 | A5 episodes | Policy positive/quiet/cooldown sequences and live transport integration create one persistent incident per continuous synthetic episode |
 | A6 local boundary | Host/Origin rejection, capability checks, missing/wrong WebSocket auth, HTTP/message/JPEG dimension/byte limits, malformed images, nonfinite/backwards timestamps, path traversal and symlink rejection |
-| A7 bounded work | Slow inference test replaces queued frames and counts drops; one active + one pending job; bounded history/clip rings; 18,000 synthetic time steps exercise 30-minute buffer bounds |
+| A7 bounded work | Slow inference test replaces queued frames and counts drops; one active + one pending job; bounded history/clip rings; 18,000 synthetic time steps exercise buffer bounds; the separate actual 30-minute generated-input run is reported below |
 | A8 clips | Actual VP8/WebM encode/decode; Chromium playback; partial clip finalized on disarm; encoder/deletion serialization and queued-encode cancellation; source gap/pre/post metadata; quota, retention and deletion tests. Physical webcam clips untested |
 | A9 restart | Review labels/JSON survive another app instance; pending countdowns cancelled and submitting actions marked unknown; no automatic rearming/replay |
 | A10 adapter | Mocked success, explicit rejection, invalid response, timeout/unknown, same-action duplicate claim, cancellation, one in flight, cooldown, rolling quota and restart recovery |
@@ -46,7 +46,7 @@ No local consenting participant recordings were supplied. The owner clarified th
 | Precision ≥90%, recall ≥80%, ≤2 false alerts/hour | Unmeasured |
 | Median onset delay ≤2 s, p95 ≤4 s | Unmeasured; STGCN has a minimum 3-second observation window |
 | Real two-person 10 FPS / frame age target | Unmeasured; blank-frame/synthetic feasibility only |
-| 30-minute continuous real camera memory test | Not performed; bounded data structures and synthetic-time buffer test only |
+| 30-minute continuous real camera memory test | Not performed with a physical camera; actual generated-input 30-minute run reported below |
 | Compatible license/data rights | Code licenses and Google’s Lite-family model-card license recorded; NTU/STGCN conditions unresolved |
 | Real ElevenLabs test | Not performed; mocked adapter tests only |
 
@@ -75,6 +75,8 @@ The model adapter's initial punch-class index was shifted by one. Upstream's 50t
 
 Live/replay policy settings are now shared and fingerprinted. Replay sampling at 25 FPS now retains the intended 10 analyzed FPS instead of drifting down to ~8.3 FPS. Held-out runs require an explicit development report and reject changed model, artifact, preprocessing, evaluator, or threshold identity.
 
-An initial 30-minute generated-input soak on adapter v2 completed: 17,975 frames in 1800.005 seconds (~9.99 FPS), 12,421,125-byte maximum clip ring, and zero measured RSS growth beyond warm-up. This was not a physical-camera or action-accuracy check. A repeat on final v3 sources, including explicit source fingerprints and disk measurements, remains pending until its completed report is inspected. It uses no human footage and cannot satisfy the physical-camera/accuracy requirements above.
+The final source-fingerprinted v3 generated-input soak completed successfully: 17,988 frames in 1800.090 seconds (9.993 FPS), at most 45 frames / 12,421,125 bytes in the clip ring, and 45,056 bytes of temporary database/storage throughout. The last 2,000 result ages had p95 46 ms. Model and runtime source fingerprints match the hardening implementation. Full samples and identities are in [SAFETY_SOAK.json](SAFETY_SOAK.json).
+
+RSS needs its full context: the raw growth metric compares the run peak against the initial two-minute peak. One later sample at 510.771 seconds reached 285.83 MiB, then fell below 100 MiB at the next sample. The final sample was 87.36 MiB; samples in the last ten minutes ranged from 86.48 to 96.50 MiB. No sustained upward trend was observed. The zero raw growth value does not mean every post-warmup sample was below a single baseline. This was not a physical-camera, person-tracking, incident-encoding or action-accuracy check: generated noise produced no people/events, so temporal action inference and clip encoding were not exercised during this run. Those paths have separate synthetic/model/codec tests, not a continuous human test.
 
 Current v3 processing selects the same directed participant pair for STGCN and the trajectory gate, rather than mixing a bystander pair with another interaction. Visibility loss clears temporal history before recovery. Arming now supplies a fresh monotonic client-clock sample: the first image cannot establish its own apparent freshness. Browser frame age is computed directly from the returned capture timestamp; heartbeat traffic cannot keep stale inference looking active.
