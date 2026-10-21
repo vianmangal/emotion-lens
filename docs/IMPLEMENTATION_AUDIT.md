@@ -22,7 +22,7 @@ All requested screen controls are present. Text/icons accompany alerts, and cont
 | Contract | Proof or missing evidence | Result |
 | --- | --- | --- |
 | D1 sequence input, session-local tracking, two observed people, directed interaction, no expression dependency | detector.py, temporal_model.py, tracking.py; temporal/lone-person/occlusion and same-pair tests; no expression imports in safety inference | Implemented; real-world decision quality unverified |
-| D2 exact stack, checkpoint/source/checksum/input shape/order/preprocessing/class map | Model report, artifact manifest, source/dependency pins, actual tensor inspection and model execution | Recorded and partially verified; complete weight/data rights unresolved |
+| D2 exact stack, checkpoint/source/checksum/input shape/order/preprocessing/class map | Model report, artifact manifest, source/dependency pins, actual tensor inspection and model execution | Recorded; code/Lite-family license evidence found; NTU/STGCN weight/data rights unresolved |
 | D2 actual machine feasibility and pretrained model vs baseline on staged positive/benign clips | M4 CPU generated-frame and synthetic-skeleton benchmark | Synthetic feasibility only; staged human comparison missing |
 | D2 interchangeable adapters, isolated pinned environment, explicit downloads/no CUDA requirement | Detector adapters, setup_temporal.py, download_models.py, requirements and dependency snapshots | Implemented and exercised locally |
 | D3 abstain on visibility loss, ID changes, stale frames, gaps and inadequate history | Policy/model/transport tests; old decoded/queued work cannot enter a replacement session | Implemented for tested cases |

@@ -47,7 +47,7 @@ No local consenting participant recordings were supplied. The owner clarified th
 | Median onset delay ≤2 s, p95 ≤4 s | Unmeasured; STGCN has a minimum 3-second observation window |
 | Real two-person 10 FPS / frame age target | Unmeasured; blank-frame/synthetic feasibility only |
 | 30-minute continuous real camera memory test | Not performed; bounded data structures and synthetic-time buffer test only |
-| Compatible license/data rights | Source code licenses verified; complete artifact/data conditions unresolved |
+| Compatible license/data rights | Code licenses and Google’s Lite-family model-card license recorded; NTU/STGCN conditions unresolved |
 | Real ElevenLabs test | Not performed; mocked adapter tests only |
 
 No held-out thresholds were tuned, no participant/session split was claimed, and no confidence intervals can be calculated without samples. The synthetic STGCN/baseline comparison is recorded in `SAFETY_BENCHMARK.json` and explained in `SAFETY_MODEL_REPORT.md`; it is not a substituted real-world benchmark.
