@@ -53,17 +53,17 @@ export default function useSafetySession() {
   const start = useCallback(async deviceId => {
     const epoch = await stop();
     const r = resources.current;
-    if (r.epoch !== epoch) return;
+    if (r.epoch !== epoch) return false;
     setError(''); setStarting(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access needs a supported browser on localhost.');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { width: { ideal: 640 }, height: { ideal: 480 }, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) } });
-      if (r.epoch !== epoch) { stream.getTracks().forEach(t => t.stop()); return; }
+      if (r.epoch !== epoch) { stream.getTracks().forEach(t => t.stop()); return false; }
       r.stream = stream;
       stream.getVideoTracks().forEach(t => { t.onended = () => { setError('Camera disconnected. Start again to recover.'); stop(); }; });
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-      const session = await safetyRequest('/sessions', { method: 'POST', body: { source: 'live' } });
-      if (r.epoch !== epoch) { await safetyRequest(`/sessions/${session.id}`, { method: 'DELETE', session }); return; }
+      const session = await safetyRequest('/sessions', { method: 'POST', body: { source: 'live', live_only: true } });
+      if (r.epoch !== epoch) { await safetyRequest(`/sessions/${session.id}`, { method: 'DELETE', session }); return false; }
       r.session = session;
       const ws = new WebSocket(streamUrl(session.id));
       r.ws = ws;
@@ -82,7 +82,7 @@ export default function useSafetySession() {
         };
         ws.onclose = () => complete(new Error('Camera stream closed.'));
       });
-      if (r.epoch !== epoch) return;
+      if (r.epoch !== epoch) return false;
       let frameId = 0, encoding = false, sent = 0, inferred = 0, measuredAt = performance.now(), videoTime = -1, changedAt = performance.now();
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
@@ -107,7 +107,7 @@ export default function useSafetySession() {
         setResult({ ...data, frame_age_ms: age === undefined ? undefined : Math.round(age) });
         if (['disarmed', 'unavailable'].includes(data.state)) { r.armed = false; setArmed(false); }
       };
-      ws.onclose = () => { setError('Backend stream disconnected. Camera stopped; start and re-arm explicitly.'); stop(); };
+      ws.onclose = () => { setError('Backend stream disconnected. Start the camera again to recover.'); stop(); };
       ws.onerror = () => { setError('Local stream failed. Start again to recover.'); stop(); };
       r.timer = setInterval(() => {
         const video = videoRef.current;
@@ -140,13 +140,17 @@ export default function useSafetySession() {
           } finally { encoding = false; }
         }, 'image/jpeg', .75);
       }, 100);
-      setDevices((await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'));
+      const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+      if (r.epoch !== epoch) return false;
+      setDevices(devices.filter(d => d.kind === 'videoinput'));
       setCamera(true); setStarting(false);
+      return true;
     } catch (e) {
       if (r.epoch === epoch) {
         await stop();
         setError(e.name === 'NotAllowedError' ? 'Camera permission denied. Allow camera access in your browser, then Start again.' : e.name === 'NotFoundError' ? 'No camera found. Connect a camera and retry.' : e.message);
       }
+      return false;
     }
   }, [stop, disarm]);
 

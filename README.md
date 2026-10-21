@@ -24,31 +24,30 @@ npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**, select **Live Safety**, click **Start camera**, then **Arm monitoring**. Camera access and microphone capture are off initially; audio capture is never requested. The default detector is an experimental directed-wrist trajectory baseline. For the pretrained temporal classifier:
+Open **http://127.0.0.1:5173**, select **Live Safety** and click **Start camera**. This starts the video feed, person tracking and motion detection together. **Stop** releases the camera. If detection pauses after a hidden tab or an interrupted stream, click **Resume detection**.
+
+## Current live view
+
+- One camera feed with labeled person boxes and skeletons.
+- A live people count, with a request to show two people when fewer are visible.
+- A **Possible hit detected** warning when directed striking motion passes the temporal detector.
+- Camera selection, Start, Stop and recovery through Resume detection.
+
+The current view has no incident history, phone controls, recording controls or separate Arm step. Live-only sessions do not save incidents/clips or schedule phone actions. Existing local records are preserved. The older backend incident/phone APIs remain available for later work, outside this simplified view.
+
+The default detector is an experimental directed-wrist trajectory baseline over multiple pose frames. It requires two visible people and relevant arm landmarks; occluded or stale input is insufficient evidence. Human accuracy has not been measured, so the warning describes possible motion rather than proven contact or intent.
+
+For the planned two-person presentation, follow the [live demo walkthrough](docs/DEMO.md). See [local setup](docs/LOCAL_SETUP.md) for dependencies and camera recovery. The original upload and webcam-snapshot views remain available separately.
+
+An optional pretrained temporal comparison is also installed independently:
 
 ```bash
-# Explicit isolated setup; downloads pinned code and a checksum-verified checkpoint.
 .venv-safety/bin/python scripts/setup_temporal.py
 # Stop the other backend before starting this one.
 .venv-model/bin/python scripts/run_local.py --model stgcn
 ```
 
-See [Local setup](docs/LOCAL_SETUP.md) for camera recovery, optional expression weights, phone configuration, migrations, and cleanup.
-
-For a presentation with two people on camera, use the [live demo walkthrough](docs/DEMO.md), including rehearsal, clip review, dry-run calls and keeping the Mac awake.
-
-## What is implemented
-
-- Live webcam selection and preview; explicit Start/Stop and Arm/Disarm.
-- Local multi-person pose estimation, session-local tracking, and interchangeable temporal models: a trajectory baseline and pretrained STGCN/NTU60 adapter.
-- Conservative abstention, candidate/episode/cooldown policy, fresh-frame checks, and one active session with bounded processing.
-- SQLite incident history, review labels, and event deletion.
-- Opt-in pre/post event VP8/WebM clips, local sound, quota and retention.
-- Cancellable phone countdowns; offline dry runs; server-only ElevenLabs native Twilio adapter for explicit tests.
-- Restart recovery, persistent call deduplication/cooldown/quota, no automatic retry on ambiguous delivery.
-- Original image upload and webcam snapshot views. Optional TensorFlow and local expression weights are loaded only when requested.
-
-**Detector qualification remains unmet.** Live monitoring works experimentally; there is no measured held-out precision/recall or real webcam accuracy claim. Automatic real calls are locked in code. Explicit configured real test calls are available independently. No real call was placed during implementation. See [model feasibility](docs/SAFETY_MODEL_REPORT.md), [actual verification results](docs/SAFETY_EVALUATION.md), the [requirement audit](docs/IMPLEMENTATION_AUDIT.md), and the [30-minute engineering run](docs/SAFETY_SOAK.json).
+See [model feasibility](docs/SAFETY_MODEL_REPORT.md) and [verification results](docs/SAFETY_EVALUATION.md) for measurements and their limits. The [original PRD](docs/PRD-LIVE-SAFETY.md) describes the earlier, broader scope; the owner's latest request prioritizes the simple live view above.
 
 ## Checks
 
@@ -73,10 +72,10 @@ Tests use mocks/fake camera input, temporary SQLite databases, and generated med
 
 ```text
 Browser webcam → bounded WebSocket → person poses / tracking → temporal classifier
-                                                           → episode policy
-                                                           → SQLite incidents
-                                                           → optional local clips
-                                                           → dry-run action / phone adapter
+                                                           → motion policy
+                                                           → live tracks / possible-hit status
+
+Older full API mode → SQLite incidents / optional clips / phone adapter
 Uploaded image → face preprocessing → optional TensorFlow CNN → SQLite prediction
 ```
 
@@ -84,4 +83,4 @@ Backend: `backend/`; UI: `deep_fe/frontend/`; schema changes: `migrations/`; exp
 
 The original expression report covers 6,236 samples: 61.45% accuracy, 59.03% macro F1, 61.76% weighted F1. These are historical expression results and say nothing about action detection. Original training/evaluation scripts and tracked expression weights are preserved.
 
-The [Live Safety PRD](docs/PRD-LIVE-SAFETY.md) records the requirements; [the original handoff](docs/IMPLEMENTATION-HANDOFF.md) is historical implementation context. Obsolete repository deployment files were removed. No cloud account resources were accessed or changed.
+The [Live Safety PRD](docs/PRD-LIVE-SAFETY.md) records the earlier broader roadmap; [the original handoff](docs/IMPLEMENTATION-HANDOFF.md) is historical implementation context. Obsolete repository deployment files were removed. No cloud account resources were accessed or changed.

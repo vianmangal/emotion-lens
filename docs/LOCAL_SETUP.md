@@ -39,14 +39,14 @@ Plain `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --ws-max-size 10485
 
 ## Live use
 
-1. Select Live Safety. Start the camera and allow camera permission; microphone permission is never requested.
-2. Keep both participants' upper bodies and arms visible. Camera switching requires Stop, select another device, then Start.
-3. Sound/clip preferences persist in local browser storage; phone arming never persists. Choose local sound, optional clips, and Off/Dry run phone mode before arming. Clip defaults: up to 5 seconds before and 5 seconds after an incident; no audio; 24-hour retention; 500 MiB quota. Metadata defaults to 7 days. The UI reports current storage.
-4. Arm and wait for a stable temporal window. Unknown/occluded/lone-person evidence abstains. Candidate movement cannot call anyone.
-5. Review an incident as Relevant, False alarm, or Unclear. Play the available clip or delete both event and clip.
-6. Disarm cancels countdowns. Stop releases camera/WebSocket/buffers. Switching to another tab/view also releases the camera.
+1. Select Live Safety, choose a camera and click **Start camera**. Video, person tracking and motion detection start together; microphone permission is never requested.
+2. Keep both participants' upper bodies and arms visible. Labeled boxes and skeletons identify session-local tracks. Fewer than two visible people, uncertain limbs or insufficient history cannot establish a striking interaction.
+3. Watch for **Possible hit detected** in the live status. Camera selection, Start and Stop are the main controls. **Resume detection** appears only after a pause; returning to a visible tab does not silently resume analysis.
+4. Stop releases the camera and connection. Switching to another application view also releases them. Camera switching requires Stop, select another device, then Start.
 
-Hidden browser tabs, frame/inference gaps over 1 second, frozen preview, and disconnects pause/disarm monitoring. Returning to a visible tab never re-arms it automatically. A session expires after one hour by default (SAFETY_SESSION_TTL_SECONDS, at most 3600 seconds); stop/start it to renew. Insufficient evidence is distinct from a negative decision. Monitoring never claims the scene is safe.
+The simplified live view has no incident history, clips, sound/phone settings or separate arming step. It requests `live_only: true`: incident writes, recording and phone actions are disabled for that session, and the incident-notification cooldown is removed. Existing local data and the older backend APIs are preserved. A session still expires after one hour by default; Stop/Start renews it.
+
+See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental and human accuracy remains unmeasured.
 
 ## Optional expression feature
 
@@ -56,7 +56,7 @@ Hidden browser tabs, frame/inference gaps over 1 second, frozen preview, and dis
 
 Set `MODEL_PATH=models/emotion_cnn_20260530_193721_best.keras` in a root `.env`. Existing tracked expression weights are preserved. `/predict` retains its multipart `image` and response contract; `/health` reports expression configuration separately. TensorFlow is lazy and optional, so missing expression dependencies/weights cannot prevent safety startup. The physical weight files were not validated during this implementation; legacy preprocessing/API behavior is tested with an inference mock.
 
-## ElevenLabs (optional)
+## ElevenLabs adapter (backend only, deferred from the live view)
 
 Dry runs need no credentials or internet. A real test needs an ElevenLabs agent, a native connected outbound-capable Twilio phone number/verified caller ID, and a consenting recipient. An API key alone is not a phone line. Follow [native integration prerequisites](https://elevenlabs.io/docs/eleven-agents/phone-numbers/twilio-integration/native-integration/).
 
@@ -74,7 +74,7 @@ SAFETY_CALL_MAX_PER_HOUR=3
 
 The destination is E.164 (`+` followed by country code and number). Only the configured destination can be called. The UI reveals its last four digits. Configure the agent to speak its trusted `emotionlens_message` dynamic variable, keep calls short, end after the message, and disable unnecessary tools; configure maximum duration in ElevenLabs. The adapter uses [the native outbound-call endpoint](https://elevenlabs.io/docs/api-reference/integrations/twilio/outbound-call), sets `call_recording_enabled=false`, and sends a brief trusted message with no images, video, or embeddings. Review agent transcript/audio retention separately; that flag controls Twilio recording, not all provider retention.
 
-After restarting the backend, check the recipient acknowledgement box and click **Send real test call** to authorize one paid test. Cancel its countdown if needed. No real call is part of installation/tests. Automatic real mode remains locked because detector qualification is unmet.
+The current Live Safety screen exposes no phone tests or real-call controls. Live-only sessions reject phone modes and clips. The server adapter and its tests remain for a later phase; no real call is part of installation/tests, and automatic real mode remains locked while qualification is unmet.
 
 A submitted request does not establish that anyone answered. `failed` means explicit rejection; timeout/ambiguous provider responses become `delivery_unknown` without retry. At most one submission is in flight, with 5-minute recipient cooldown and 3 real attempts per rolling hour, including real tests. Deleting an event preserves minimal call accounting/dedup for at least that horizon. Restart cancels countdowns and marks interrupted submissions unknown. Submitted calls cannot be recalled by this app.
 
@@ -103,13 +103,13 @@ Clips are served only by incident ID with a capability. Arbitrary paths and syml
 - Quota/storage warning: free local disk or delete incidents. Clip admission reserves a conservative uncompressed upper bound, so quota rejection can happen before the actual compressed quota is full.
 - Backend disconnected: start/restart the local API, then Start and Arm explicitly. Nothing automatically resumes real actions.
 
-## Non-contact demonstration
+## Two-person demonstration
 
-With two consenting adults, show an ordinary gesture, then a slow rehearsed **non-contact** directed arm motion with both upper bodies visible. The baseline or STGCN may abstain or miss the action; do not treat an unsuccessful demonstration as a passed detector test. If policy fires, inspect the possible-motion warning and clip, review-label the incident, and verify a dry-run record. Cancel/disarm before the countdown finishes to demonstrate cancellation. A single person shadowboxing must not generate an inter-person event. This is a live demo; replay is an optional engineering/evaluation tool.
+Use [DEMO.md](DEMO.md) for the current Start → track both people → possible-hit warning → Stop flow. The earlier incident/clip/phone presentation flow is superseded by the owner's request for a simpler first milestone.
 
 ## Policy tuning and sustained runtime check
 
-The server exposes experimental entry/exit scores, candidate duration, quiet interval and cooldown through the `SAFETY_EVENT_*` values in `.env.example`. Entry must exceed exit; scores must be finite. Live and replay use the same settings. Every new event/evaluation report records a stable threshold-version fingerprint. These controls do not qualify a model or enable real automatic calls.
+The server exposes experimental entry/exit scores, candidate duration, quiet interval and cooldown through the `SAFETY_EVENT_*` values in `.env.example`. Entry must exceed exit; scores must be finite. Live and replay use the same settings. The full backend event/evaluation paths record a stable threshold-version fingerprint. Live-only mode overrides the incident cooldown to zero and does not persist incidents. These controls do not qualify a model or enable real automatic calls.
 
 WebSocket heartbeats report server state every 500 ms; they never count as fresh inference. Disarm/Stop and delayed HTTP responses are tied to their original camera session. A delayed response cannot re-arm a stopped/hidden camera, and queued frames from a previous arming generation are discarded.
 
@@ -121,4 +121,4 @@ A generated-input engineering soak can run independently of the real camera:
 
 It creates a temporary SQLite app on an ephemeral loopback port, clears call credentials, uses replay/off mode, sends generated high-entropy JPEGs at approximately 10 FPS, enables the bounded clip ring, and samples actual process RSS. It does not open a camera, establish action accuracy, or block the user's separate live app. The report includes its exact input/measurement scope and completion state; a running/failed report is not a passed check. RSS is sampled every 30 seconds. Its raw growth metric compares the sampled run peak against the initial two-minute peak; inspect the samples for later transient spikes and sustained trends. The completed reference run and this distinction are recorded in `SAFETY_SOAK.json` and `SAFETY_EVALUATION.md`.
 
-If local database initialization or writes fail, `/health` remains available and exposes separate persistence readiness. Local preview/warnings can continue; event/history/action operations report a storage-specific 503 where needed. Phone dispatch stays disabled until storage is repaired and the backend is restarted, preventing delayed catch-up attempts. Stop, Disarm, hidden tabs and view changes close the optional alert audio context; the sound preference remains local for the next explicit Arm.
+If local database initialization or writes fail, `/health` remains available and exposes separate persistence readiness. Local preview/warnings can continue; event/history/action operations report a storage-specific 503 where needed. Phone dispatch stays disabled until storage is repaired and the backend is restarted, preventing delayed catch-up attempts. The simplified live screen creates no alert-audio context. Stop and view changes release capture; hidden tabs pause analysis until Resume detection.

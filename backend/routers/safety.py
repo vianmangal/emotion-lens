@@ -54,10 +54,10 @@ async def status(rt=Depends(authorized)):
 async def create_session(options: SessionOptions, rt=Depends(authorized)):
     async with rt.control_lock:
         try:
-            s = await rt.create(options.source)
+            s = await rt.create(options.source, live_only=options.live_only)
         except ValueError as exc:
             raise HTTPException(409, str(exc)) from exc
-    return {'id': s.id, 'capability': s.capability, 'expires_in_seconds': rt.config.SAFETY_SESSION_TTL_SECONDS, 'source': s.source}
+    return {'id': s.id, 'capability': s.capability, 'expires_in_seconds': rt.config.SAFETY_SESSION_TTL_SECONDS, 'source': s.source, 'live_only': s.live_only}
 
 
 @router.post('/sessions/{session_id}/arm')

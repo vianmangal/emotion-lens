@@ -21,6 +21,7 @@ class Session:
     id: str = field(default_factory=new_id)
     capability: str = field(default_factory=lambda: secrets.token_urlsafe(32))
     source: str = 'live'
+    live_only: bool = False
     created_monotonic: float = field(default_factory=time.monotonic)
     expires: float = field(default_factory=lambda: time.monotonic() + 3600)
     policy: EventPolicy = field(default_factory=EventPolicy)
@@ -119,11 +120,16 @@ class Runtime:
                 'recipient': masked_recipient(self.config), 'real_auto_calls_available': False,
                 'real_test_available': configured(self.config) and self.persistence_ready, 'call_grace_seconds': self.config.SAFETY_CALL_GRACE_SECONDS}
 
-    async def create(self, source):
+    async def create(self, source, live_only=False):
         if self.session:
             raise ValueError('A camera session is already active. Stop it first.')
         await self.work(self.detector.reset)
-        self.session = Session(source=source, policy=EventPolicy(**self.config.event_policy_options()),
+        policy_options = self.config.event_policy_options()
+        if live_only:
+            # The live feed must recognize the next motion without the incident
+            # history's 30-second notification cooldown.
+            policy_options['cooldown'] = 0
+        self.session = Session(source=source, live_only=live_only, policy=EventPolicy(**policy_options),
                                expires=time.monotonic() + self.config.SAFETY_SESSION_TTL_SECONDS)
         return self.session
 
@@ -147,7 +153,8 @@ class Runtime:
         event_id, s.event_id = s.event_id, None
         self.finalize(s, partial=True)
         try:
-            await self.dispatcher.cancel(reason=reason)
+            if not s.live_only:
+                await self.dispatcher.cancel(reason=reason)
             if event_id:
                 async with self.factory() as db:
                     event = await db.get(Incident, event_id)
@@ -186,6 +193,8 @@ class Runtime:
             raise ValueError('Start the camera stream first')
         if not self.detector.ready:
             raise ValueError(self.detector.reason)
+        if s.live_only and (options.phone_mode != 'off' or options.clips):
+            raise ValueError('Live-only sessions support tracking and detection without clips or phone actions')
         if options.phone_mode == 'real':
             raise ValueError('Automatic real calls are locked: detector qualification is unmet. Use dry run or an explicit phone test.')
         if options.client_now_ms is None:
@@ -205,7 +214,7 @@ class Runtime:
 
     def action_allowed(self, event, mode):
         s = self.session
-        if not (self.persistence_ready and s and event and event.session_id == s.id and s.connected and s.policy.armed and s.source == 'live' and s.phone_mode == mode and time.monotonic() - s.last_frame < 1 and time.monotonic() - s.evidence_at < 1 and s.last_evidence and s.last_evidence.ready and s.last_evidence.people >= 2):
+        if not (self.persistence_ready and s and not s.live_only and event and event.session_id == s.id and s.connected and s.policy.armed and s.source == 'live' and s.phone_mode == mode and time.monotonic() - s.last_frame < 1 and time.monotonic() - s.evidence_at < 1 and s.last_evidence and s.last_evidence.ready and s.last_evidence.people >= 2):
             return False
         return mode == 'dry_run' or self.detector.qualified
 
@@ -284,7 +293,7 @@ class Runtime:
                 s.recording_truncated = True
             if s.recording_id and t >= s.recording_until:
                 self.finalize(s)
-        if created:
+        if created and not s.live_only:
             event_id = new_id()
             try:
                 async with self.factory() as db:
@@ -330,12 +339,13 @@ class Runtime:
                 'state': s.policy.state, 'reason': s.reason, 'tracking': 'observed' if evidence.ready else 'insufficient_evidence',
                 'people': len(tracks), 'tracks': tracks, 'score': evidence.score, 'event_id': s.event_id,
                 'interaction_track_ids': list(evidence.track_ids),
-                'new_event': created, 'frame_age_ms': round(age * 1000), 'dropped_frames': s.dropped,
+                'new_event': created, 'live_only': s.live_only,
+                'frame_age_ms': round(age * 1000), 'dropped_frames': s.dropped,
                 'processing_ms': round((time.monotonic() - now) * 1000), 'source': s.source,
                 'storage_warning': self.storage_warning}
 
     async def cancel_automatic(self, session, reason):
-        if self.persistence_ready:
+        if self.persistence_ready and not session.live_only:
             try:
                 await self.dispatcher.cancel(session_id=session.id, reason=reason)
             except SQLAlchemyError:

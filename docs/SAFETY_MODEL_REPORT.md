@@ -2,6 +2,8 @@
 
 Updated 2026-10-22. **Engineering prototype runs live; detector qualification is unmet.** There are no held-out human action recordings/results. Automatic real calls stay locked. This report does not claim measured violence recognition or pre-contact prediction.
 
+The current simplified live view uses a live-only session: the same temporal detector and visibility/freshness gates, with no incident persistence, recording, phone actions or incident cooldown. The broader policy measurements below retain their original configuration/provenance. Human two-person accuracy remains unmeasured.
+
 ## Actual stack and artifacts
 
 | Stage | Implementation |

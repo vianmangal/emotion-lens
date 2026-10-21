@@ -1,4 +1,26 @@
-# Live Safety completion audit
+# Current milestone: simple live two-person detection
+
+Updated 2026-10-22. The owner's latest request supersedes the earlier interface scope: remove incident history and focus on a live feed tracking two people and detecting possible hitting motion.
+
+| Requirement | Evidence | Status |
+| --- | --- | --- |
+| Simple live camera feed | LiveSafety.jsx; one-step Start and Stop browser test | Implemented |
+| Two distinguishable tracks | MediaPipe + session-local tracker; mirrored video with matching colored boxes, skeletons and readable Person labels | Implemented; real participant rehearsal pending |
+| Possible-hit warning | Temporal directed-motion detector + evidence policy; synthetic backend episodes and controlled browser alert fixture | Implemented experimentally; human accuracy unmeasured |
+| Remove history from Live Safety | History component removed from live page and navigation; browser checks no history/phone API requests | Implemented |
+| Avoid the extra workflow | No recording/phone controls or separate Arm button; Start begins analysis; Resume appears after interruption | Implemented |
+| Live-only operation | Session rejects phone modes/clips, does not persist incidents, and has no incident-notification cooldown | Verified by backend regression tests |
+| Keep capture bounded and stop cleanly | Existing transport protections; updated stale-frame, hidden-tab, delayed-start and keyboard cleanup checks | Automated checks pass |
+
+Current verification: **72 backend tests, 10 browser tests, production build**. See SAFETY_EVALUATION.md for the scope of each check. DEMO.md describes the current two-person walkthrough. Existing local records and older backend APIs are preserved; no data files were deleted.
+
+---
+
+## Historical audit of the original full PRD
+
+The remaining content records the previous, broader implementation. Its UI descriptions are superseded above; model measurements and unperformed human qualification remain as originally recorded.
+
+### Live Safety completion audit
 
 Updated 2026-10-22 against `PRD-LIVE-SAFETY.md` v1.0. This audit preserves the PRD scope. **The overall qualified detector feature is not complete.** Implemented engineering and passing synthetic/mocked tests do not establish webcam action accuracy.
 

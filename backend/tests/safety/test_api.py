@@ -44,8 +44,8 @@ def wait_closed(c, app):
     c.portal.call(wait)
 
 
-def session(c, source='live'):
-    r = c.post('/safety/sessions', json={'source': source})
+def session(c, source='live', **options):
+    r = c.post('/safety/sessions', json={'source': source, **options})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -302,3 +302,61 @@ def test_stale_first_frame_cannot_establish_a_false_fresh_clock(client, monkeypa
         ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': 0, 'captured_ms': time.monotonic()*1000-2000, 'jpeg': 'unused'})
         result = receive_result(ws)
         assert result['state'] == 'unavailable' and 'Stale' in result['reason']
+
+
+@pytest.mark.parametrize('options', [{'clips': True}, {'phone_mode': 'dry_run'}, {'phone_mode': 'real'}])
+def test_live_only_sessions_reject_recording_and_phone_actions(client, options):
+    c, app = client
+    app.state.safety.detector.ready = True
+    s = session(c, live_only=True)
+    assert s['live_only'] is True
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        response = c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload(options),
+                          headers={'X-Session-Capability': s['capability']})
+        assert response.status_code == 409
+        assert not app.state.safety.session.policy.armed
+    wait_closed(c, app)
+
+
+def test_live_only_detects_two_episodes_without_history_writes_or_incident_cooldown(client, monkeypatch):
+    c, app = client
+    rt = app.state.safety
+    rt.detector.ready = True
+    rt.config.SAFETY_EVENT_ENTRY_SECONDS = .1
+    rt.config.SAFETY_EVENT_QUIET_SECONDS = .2
+    evidence = Evidence(True, .95, True, 2, ('Synthetic live-only test',), (1, 2))
+    tracks = [{'id': i, 'box': [.1, .1, .4, .9], 'points': [[.2, .2, .9]]} for i in (1, 2)]
+    monkeypatch.setattr(rt.detector, 'process', lambda t, f: (evidence, tracks))
+    original_factory = rt.factory
+    def forbidden_storage():
+        raise AssertionError('Live-only capture must not access incident storage')
+    monkeypatch.setattr(rt, 'factory', forbidden_storage)
+    s = session(c, live_only=True)
+    raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48, 64, 3), np.uint8))[1]).decode()
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload(),
+                      headers={'X-Session-Capability': s['capability']}).status_code == 200
+        assert rt.session.policy.cooldown == 0
+        created = 0
+        for i in range(15):
+            if i == 5: evidence = Evidence(True, 0, False, 2)
+            if i == 10: evidence = Evidence(True, .95, True, 2, (), (2, 1))
+            ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': i,
+                          'captured_ms': time.monotonic()*1000, 'jpeg': raw})
+            result = receive_result(ws)
+            assert result['live_only'] is True and result['event_id'] is None
+            assert result['people'] == 2
+            created += int(result['new_event'])
+            if result['new_event']:
+                assert result['state'] == 'alert_active'
+                assert result['interaction_track_ids'] == ([1, 2] if i < 5 else [2, 1])
+            time.sleep(.1)
+        assert created == 2
+    wait_closed(c, app)
+    async def check_empty():
+        async with original_factory() as db:
+            assert await db.scalar(select(Incident)) is None
+            assert await db.scalar(select(Action)) is None
+    c.portal.call(check_empty)

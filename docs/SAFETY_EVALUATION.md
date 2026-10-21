@@ -1,4 +1,22 @@
-# Actual verification and remaining qualification
+# Current simplified live view verification
+
+Updated 2026-10-22 for the owner's revised scope: a live video feed, two-person tracking and possible-hit detection. History, phone/clip controls and the separate Arm step are removed from the current interface.
+
+- 72 backend tests pass, including new live-only session guards and two synthetic hit episodes without incident storage or the incident cooldown.
+- 10 Chromium browser tests pass for one-step Start, labeled two-person overlays, possible-hit display, keyboard controls, permission recovery, pause/resume, delayed-start cancellation, disconnect cleanup, stalled encoding and stale-overlay suppression. Browser action results use controlled server fixtures and a fake camera.
+- The production frontend build succeeds. The backend uses the actual installed MediaPipe pose model and trajectory detector; engineering tests do not establish real two-person action accuracy.
+- An additional smoke check against the running localhost API/WebSocket and installed MediaPipe model processed 10 generated blank frames in live-only mode, correctly returning zero people and no incident IDs. This checks integration, not human hit recognition.
+- Live-only mode forces phone Off and clips Off, rejects attempts to enable either, avoids incident storage, and keeps the temporal evidence/visibility/freshness checks. The live view makes no history or phone API requests.
+
+The archived 30-minute run predates live-only sessions and is not a 30-minute verification of this new path.
+
+The reports below describe the earlier full incident/phone workflow and its separate model-evaluation gaps. Those original UI checks are historical evidence, not claims about controls in the current simplified screen. The original broad detector-qualification gate remains unmeasured; it does not prevent experimental live use.
+
+---
+
+## Earlier extended-workflow verification (through a34a7a2)
+
+### Actual verification and remaining qualification
 
 Updated 2026-10-22. **Live experimental implementation is available. Detector qualification and the overall qualified detector feature remain unfinished.** Automatic real calls are unavailable. No real provider request or physical webcam recording was made during automated verification.
 
