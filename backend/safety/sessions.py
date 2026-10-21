@@ -7,7 +7,7 @@ from collections import deque
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from backend.safety.detector import Detector
-from backend.safety.event_policy import EventPolicy
+from backend.safety.event_policy import EventPolicy, threshold_version
 from backend.safety.frame_buffer import FrameBuffer, decode_frame
 from backend.safety.recording import RecordingStore
 from backend.safety.models import Incident, new_id
@@ -22,7 +22,7 @@ class Session:
     capability: str = field(default_factory=lambda: secrets.token_urlsafe(32))
     source: str = 'live'
     created_monotonic: float = field(default_factory=time.monotonic)
-    expires: float = field(default_factory=lambda: time.monotonic() + 1800)
+    expires: float = field(default_factory=lambda: time.monotonic() + 3600)
     policy: EventPolicy = field(default_factory=EventPolicy)
     connected: bool = False
     phone_mode: str = 'off'
@@ -59,6 +59,13 @@ class Runtime:
         self.clip_lock = asyncio.Lock()
         self.control_lock = asyncio.Lock()
         self.storage_warning = None
+        self.persistence_ready = True
+
+    def storage_failed(self, reason):
+        self.storage_warning = reason
+        self.persistence_ready = False
+        if self.session:
+            self.session.phone_mode = 'off'
 
     async def work(self, fn, *args):
         return await asyncio.get_running_loop().run_in_executor(self.executor, fn, *args)
@@ -76,7 +83,10 @@ class Runtime:
     async def start(self):
         self.detector = await self.work(Detector, self.config)
         self.store = await asyncio.to_thread(RecordingStore, self.config)
-        await self.dispatcher.recover()
+        try:
+            await self.dispatcher.recover()
+        except SQLAlchemyError:
+            self.storage_failed('Local database unavailable; check disk space/permissions and restart. Phone actions are disabled.')
         try:
             await cleanup(self.factory, self.store, self.config)
         except (OSError, SQLAlchemyError):
@@ -101,21 +111,28 @@ class Runtime:
                 'state': s.policy.state if s else 'disarmed', 'recording_available': self.store.available,
                 'recording_reason': self.store.reason, 'storage_bytes': self.store.usage(),
                 'storage_quota_bytes': self.store.quota, 'storage_warning': self.storage_warning,
+                'persistence_ready': self.persistence_ready,
                 'clip_retention_hours': self.config.SAFETY_CLIP_RETENTION_HOURS,
                 'metadata_retention_days': self.config.SAFETY_METADATA_RETENTION_DAYS, 'phone_configured': configured(self.config),
+                'event_policy': self.config.event_policy_options(),
+                'threshold_version': threshold_version(self.config.event_policy_options()),
                 'recipient': masked_recipient(self.config), 'real_auto_calls_available': False,
-                'real_test_available': configured(self.config), 'call_grace_seconds': self.config.SAFETY_CALL_GRACE_SECONDS}
+                'real_test_available': configured(self.config) and self.persistence_ready, 'call_grace_seconds': self.config.SAFETY_CALL_GRACE_SECONDS}
 
     async def create(self, source):
         if self.session:
             raise ValueError('A camera session is already active. Stop it first.')
         await self.work(self.detector.reset)
-        self.session = Session(source=source)
+        self.session = Session(source=source, policy=EventPolicy(**self.config.event_policy_options()),
+                               expires=time.monotonic() + self.config.SAFETY_SESSION_TTL_SECONDS)
         return self.session
 
-    async def disarm(self, reason='Disarmed'):
+    async def disarm(self, reason='Disarmed', expected_session=None):
         async with self.control_lock:
+            if expected_session is not None and self.session is not expected_session:
+                return False
             await self._disarm(reason)
+            return True
 
     async def _disarm(self, reason='Disarmed'):
         s = self.session
@@ -127,20 +144,27 @@ class Runtime:
         s.last_evidence = None
         s.reason = reason
         s.buffer.clear()
-        await self.dispatcher.cancel(reason=reason)
-        if s.event_id:
-            async with self.factory() as db:
-                event = await db.get(Incident, s.event_id)
-                if event:
-                    event.status = 'interrupted'
-                    await db.commit()
-            s.event_id = None
+        event_id, s.event_id = s.event_id, None
         self.finalize(s, partial=True)
-        await self.work(self.detector.reset)
+        try:
+            await self.dispatcher.cancel(reason=reason)
+            if event_id:
+                async with self.factory() as db:
+                    event = await db.get(Incident, event_id)
+                    if event:
+                        event.status = 'interrupted'
+                        await db.commit()
+        except SQLAlchemyError:
+            self.storage_failed('Storage unavailable during disarm; monitoring stopped. Check local disk.')
+        finally:
+            await self.work(self.detector.reset)
 
-    async def end(self):
+    async def end(self, expected_session=None):
         async with self.control_lock:
+            if expected_session is not None and self.session is not expected_session:
+                return False
             await self._end()
+            return True
 
     async def _end(self):
         s = self.session
@@ -149,11 +173,14 @@ class Runtime:
             s.connected = False
             self.session = None
 
-    async def arm(self, options):
+    async def arm(self, options, expected_session=None):
+        received_at = time.monotonic()
         async with self.control_lock:
-            await self._arm(options)
+            if expected_session is not None and self.session is not expected_session:
+                raise ValueError('Session changed; start and arm the current camera explicitly')
+            await self._arm(options, received_at)
 
-    async def _arm(self, options):
+    async def _arm(self, options, received_at):
         s = self.session
         if not s or not s.connected:
             raise ValueError('Start the camera stream first')
@@ -161,8 +188,12 @@ class Runtime:
             raise ValueError(self.detector.reason)
         if options.phone_mode == 'real':
             raise ValueError('Automatic real calls are locked: detector qualification is unmet. Use dry run or an explicit phone test.')
+        if options.client_now_ms is None:
+            raise ValueError('A fresh client monotonic timestamp is required when arming; reload the local UI')
         if options.clips and not self.store.available:
             raise ValueError(self.store.reason)
+        if options.phone_mode != 'off' and not self.persistence_ready:
+            raise ValueError('Phone actions need writable local storage. Use Off for local monitoring or fix storage and restart.')
         await self._disarm()
         s.last_frame = time.monotonic()
         s.phone_mode, s.clips = options.phone_mode, options.clips
@@ -170,11 +201,11 @@ class Runtime:
         s.reason = 'Warming temporal window'
         s.last_capture = -1
         s.last_evidence = None
-        s.clock_offset = None
+        s.clock_offset = received_at - options.client_now_ms / 1000
 
     def action_allowed(self, event, mode):
         s = self.session
-        if not (s and event and event.session_id == s.id and s.connected and s.policy.armed and s.source == 'live' and s.phone_mode == mode and time.monotonic() - s.last_frame < 1 and time.monotonic() - s.evidence_at < 1 and s.last_evidence and s.last_evidence.ready and s.last_evidence.people >= 2):
+        if not (self.persistence_ready and s and event and event.session_id == s.id and s.connected and s.policy.armed and s.source == 'live' and s.phone_mode == mode and time.monotonic() - s.last_frame < 1 and time.monotonic() - s.evidence_at < 1 and s.last_evidence and s.last_evidence.ready and s.last_evidence.people >= 2):
             return False
         return mode == 'dry_run' or self.detector.qualified
 
@@ -186,6 +217,9 @@ class Runtime:
 
     async def encode(self, event_id, frames, partial, trigger):
         async with self.clip_lock:
+            async with self.factory() as db:
+                if await db.get(Incident, event_id) is None:
+                    return  # A queued encoder must not recreate a deleted event's file.
             name, status, details = await asyncio.to_thread(self.store.encode, event_id, frames, partial)
             if frames:
                 details.update(pre_event_seconds=max(0, trigger - frames[0][0]), post_event_seconds=max(0, frames[-1][0] - trigger))
@@ -203,22 +237,27 @@ class Runtime:
             return {'v': 1, 'state': 'disarmed', 'reason': s.reason}
         if was_dropped:
             await self.work(self.detector.reset)
+            if s is not self.session or s.generation != generation or not s.policy.armed:
+                return {'v': 1, 'state': 'disarmed', 'reason': s.reason}
             s.policy.invalidate()
             s.last_evidence = None
-            await self.dispatcher.cancel(reason='Dropped frames invalidated temporal history')
+            await self.cancel_automatic(s, 'Dropped frames invalidated temporal history')
         now = time.monotonic()
         t = message.captured_ms / 1000
         if s.clock_offset is None:
-            s.clock_offset = received_at - t
+            await self.disarm('Capture clock unavailable; explicitly re-arm', expected_session=s)
+            return {'v': 1, 'state': 'unavailable', 'reason': s.reason}
         age = now - t - s.clock_offset
         if age > 1 or age < -.15 or now - received_at > 1:
-            await self.disarm('Stale or inconsistent capture timestamps; explicitly re-arm')
+            await self.disarm('Stale or inconsistent capture timestamps; explicitly re-arm', expected_session=s)
             return {'v': 1, 'state': 'unavailable', 'reason': s.reason}
         if s.last_capture >= 0 and (t <= s.last_capture or t - s.last_capture > 1):
-            await self.disarm('Frame gap invalidated monitoring; explicitly re-arm')
+            await self.disarm('Frame gap invalidated monitoring; explicitly re-arm', expected_session=s)
             return {'v': 1, 'state': 'unavailable', 'reason': s.reason}
         s.last_capture = t
         raw, frame = await self.work(decode_frame, message.jpeg)
+        if s is not self.session or s.generation != generation or not s.policy.armed:
+            return {'v': 1, 'state': 'disarmed', 'reason': s.reason}
         evidence, tracks = await self.work(self.detector.process, t, frame)
         async with self.control_lock:
             return await self.apply_result(s, message, generation, t, now, raw, frame, evidence, tracks)
@@ -234,7 +273,7 @@ class Runtime:
         s.last_evidence = evidence
         s.evidence_at = time.monotonic()
         if not evidence.ready:
-            await self.dispatcher.cancel(reason='Insufficient fresh evidence')
+            await self.cancel_automatic(s, 'Insufficient fresh evidence')
         created, ended = s.policy.step(t, evidence)
         if s.clips:
             s.buffer.append(t, raw)
@@ -250,11 +289,12 @@ class Runtime:
             try:
                 async with self.factory() as db:
                     db.add(Incident(id=event_id, session_id=s.id, captured_at=t, model_version=self.detector.temporal.version,
-                                    score=evidence.score, reasons=list(evidence.reasons), track_ids=[p['id'] for p in tracks], source=s.source,
+                                    threshold_version=threshold_version(self.config.event_policy_options()),
+                                    score=evidence.score, reasons=list(evidence.reasons), track_ids=list(evidence.track_ids) or [p['id'] for p in tracks], source=s.source,
                                     clip_status='buffering' if s.clips else 'off'))
                     await db.commit()
             except SQLAlchemyError:
-                self.storage_warning = 'Incident storage failed; local warning remains active. No phone action scheduled.'
+                self.storage_failed('Incident storage failed; local warning remains active. No phone action scheduled.')
                 return {'v': 1, 'session_id': s.id, 'frame_id': message.frame_id, 'state': 'alert_active',
                         'reason': self.storage_warning, 'new_event': True, 'event_id': event_id,
                         'tracks': tracks, 'tracking': 'observed', 'people': len(tracks), 'source': s.source}
@@ -267,29 +307,47 @@ class Runtime:
                 s.recording_trigger = t
                 s.recording_truncated = False
             if s.source == 'live':
-                await self.dispatcher.enqueue(s.phone_mode, event_id=event_id)
+                try:
+                    await self.dispatcher.enqueue(s.phone_mode, event_id=event_id)
+                except SQLAlchemyError:
+                    self.storage_failed('Phone action storage failed; incident remains visible. No call scheduled.')
         elif s.event_id:
-            async with self.factory() as db:
-                event = await db.get(Incident, s.event_id)
-                if event:
-                    event.updated_at = time.time()
-                    event.score = max(event.score, evidence.score)
-                    if ended:
-                        event.status = 'ended'
-                    await db.commit()
+            try:
+                async with self.factory() as db:
+                    event = await db.get(Incident, s.event_id)
+                    if event:
+                        event.updated_at = time.time()
+                        event.score = max(event.score, evidence.score)
+                        if ended:
+                            event.status = 'ended'
+                        await db.commit()
+            except SQLAlchemyError:
+                self.storage_failed('Incident update failed; local alert remains active. Check local disk.')
             if ended:
                 s.event_id = None
         s.reason = '; '.join(evidence.reasons) if evidence.reasons else 'No event detected'
         return {'v': 1, 'session_id': s.id, 'frame_id': message.frame_id, 'captured_ms': message.captured_ms,
                 'state': s.policy.state, 'reason': s.reason, 'tracking': 'observed' if evidence.ready else 'insufficient_evidence',
                 'people': len(tracks), 'tracks': tracks, 'score': evidence.score, 'event_id': s.event_id,
+                'interaction_track_ids': list(evidence.track_ids),
                 'new_event': created, 'frame_age_ms': round(age * 1000), 'dropped_frames': s.dropped,
-                'processing_ms': round((time.monotonic() - now) * 1000), 'source': s.source}
+                'processing_ms': round((time.monotonic() - now) * 1000), 'source': s.source,
+                'storage_warning': self.storage_warning}
+
+    async def cancel_automatic(self, session, reason):
+        if self.persistence_ready:
+            try:
+                await self.dispatcher.cancel(session_id=session.id, reason=reason)
+            except SQLAlchemyError:
+                self.storage_failed('Phone action storage unavailable; automatic actions disabled until restart. Local monitoring continues.')
 
     async def calls(self):
         while True:
             try:
-                await self.dispatcher.tick()
+                if self.persistence_ready:
+                    await self.dispatcher.tick()
+            except SQLAlchemyError:
+                self.storage_failed('Phone action storage failed; dispatch paused until restart. Check local disk.')
             except Exception:
                 # No retries of claimed provider submissions; countdowns expire rather than catch up.
                 pass
@@ -301,9 +359,9 @@ class Runtime:
             await asyncio.sleep(.25)
             s = self.session
             if s and (time.monotonic() > s.expires or (not s.connected and time.monotonic() - s.created_monotonic > 10)):
-                await self.end()
+                await self.end(expected_session=s)
             elif s and s.policy.armed and time.monotonic() - s.last_frame > 1:
-                await self.disarm('Fresh frames stopped; explicitly re-arm')
+                await self.disarm('Fresh frames stopped; explicitly re-arm', expected_session=s)
             count += 1
             if count % 240 == 0:
                 try:

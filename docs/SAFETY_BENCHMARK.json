@@ -1,5 +1,12 @@
 {
   "data": "Generated blank frames and synthetic skeletons ONLY; no people or accuracy evaluation",
+  "model_version": "mmaction2-stgcn-ntu60-coco17-experimental-v3",
+  "identity": {
+    "pipeline_sha256": "df57c2e7a70299f8fd881e567298e149415fc5d838f71d9ae8d6cde4391f44d4",
+    "pose_sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a",
+    "temporal_sha256": "484a394a50246032fef9694396096902909784e8618ccc845d2859dc2b952fea",
+    "threshold_version": "experimental-37d74eccb434"
+  },
   "python": "3.11.15",
   "platform": "macOS-27.0.1-arm64-arm-64bit",
   "packages": {
@@ -14,9 +21,9 @@
     "SQLAlchemy": "2.0.30",
     "aiosqlite": "0.20.0"
   },
-  "pose_blank_frame_median_ms": 6.280062501900829,
-  "pose_blank_frame_p95_ms": 6.640239400439896,
-  "peak_process_rss_bytes": 538968064,
+  "pose_blank_frame_median_ms": 7.514416502090171,
+  "pose_blank_frame_p95_ms": 12.699185607925754,
+  "peak_process_rss_bytes": 496353280,
   "synthetic_temporal_comparison": {
     "stationary": {
       "baseline": {
@@ -26,18 +33,18 @@
         "reasons": [
           "Experimental trajectory baseline; review footage"
         ],
-        "median_ms": 0.04893750883638859,
-        "p95_ms": 0.05479374813148751
+        "median_ms": 0.21412550267996266,
+        "p95_ms": 0.32852515068952914
       },
       "stgcn": {
         "ready": true,
         "score": 0.0,
         "directed": false,
         "reasons": [
-          "NTU60 class index 53; experimental model score"
+          "NTU60 class index 53 (unsupported action); experimental model score"
         ],
-        "median_ms": 25.445457999012433,
-        "p95_ms": 30.70231684469036
+        "median_ms": 27.27937450254103,
+        "p95_ms": 31.98577934745117
       }
     },
     "directed_arm": {
@@ -48,18 +55,18 @@
         "reasons": [
           "Experimental trajectory baseline; review footage"
         ],
-        "median_ms": 0.10897899483097717,
-        "p95_ms": 0.11279144455329515
+        "median_ms": 0.4678335026255809,
+        "p95_ms": 0.7950085557240523
       },
       "stgcn": {
         "ready": true,
         "score": 0.0,
         "directed": true,
         "reasons": [
-          "NTU60 class index 53; experimental model score"
+          "NTU60 class index 53 (unsupported action); experimental model score"
         ],
-        "median_ms": 25.101500505115837,
-        "p95_ms": 30.154456253512762
+        "median_ms": 26.291291491361335,
+        "p95_ms": 31.22470989692374
       }
     },
     "wave": {
@@ -70,18 +77,18 @@
         "reasons": [
           "Experimental trajectory baseline; review footage"
         ],
-        "median_ms": 0.049208996642846614,
-        "p95_ms": 0.05004740160075016
+        "median_ms": 0.17133350047515705,
+        "p95_ms": 0.17742065247148275
       },
       "stgcn": {
         "ready": true,
         "score": 0.0,
         "directed": false,
         "reasons": [
-          "NTU60 class index 53; experimental model score"
+          "NTU60 class index 53 (unsupported action); experimental model score"
         ],
-        "median_ms": 25.29356200102484,
-        "p95_ms": 30.462610046379268
+        "median_ms": 31.702375003078487,
+        "p95_ms": 35.874348102515796
       }
     },
     "lone_person": {
@@ -92,8 +99,8 @@
         "reasons": [
           "Two visible participants required"
         ],
-        "median_ms": 0.0012710006558336318,
-        "p95_ms": 0.0013524499081540853
+        "median_ms": 0.001291991793550551,
+        "p95_ms": 0.0013518976629711688
       },
       "stgcn": {
         "ready": false,
@@ -102,8 +109,8 @@
         "reasons": [
           "Two visible participants required"
         ],
-        "median_ms": 0.0015419936971738935,
-        "p95_ms": 0.001624997821636498
+        "median_ms": 0.002854001650121063,
+        "p95_ms": 0.0028939059120602906
       }
     }
   },

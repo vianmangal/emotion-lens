@@ -1,6 +1,6 @@
 # Actual verification and remaining qualification
 
-2026-10-21. **Live experimental implementation is available. Detector qualification and the overall qualified detector feature remain unfinished.** Automatic real calls are unavailable. No real provider request or physical webcam recording was made during automated verification.
+Updated 2026-10-22. **Live experimental implementation is available. Detector qualification and the overall qualified detector feature remain unfinished.** Automatic real calls are unavailable. No real provider request or physical webcam recording was made during automated verification.
 
 ## Engineering results
 
@@ -12,18 +12,18 @@ npm run build --prefix deep_fe/frontend
 npm run test:e2e --prefix deep_fe/frontend
 ```
 
-39 backend tests pass. Five Playwright browser tests pass. The frontend production build succeeds. Tests use actual temporary SQLite databases, generated benign image/video fixtures, synthetic evidence, mocked provider transport, and Chromium's fake camera. No test dials a phone number. The preexisting HEIC test now uses a generated 64×64 white decoder fixture, avoiding a native HEIF-encoder crash observed when encoding after VP8 initialization on this machine. Production HEIC decoding and the upload contract still pass.
+68 backend tests pass. Twelve Playwright browser tests pass. The frontend production build succeeds. Tests use actual temporary SQLite databases, generated benign image/video fixtures, synthetic evidence, mocked provider transport, and Chromium's fake camera. No test dials a phone number. Additional regression coverage checks stopped/replaced session races, stalled JPEG encoding despite heartbeats, server-driven disarming, encoder/deletion races, full-storage cleanup, the corrected zero-based NTU punch class, same-pair temporal classification with bystanders, stale first-frame rejection, and optional audio cleanup. Database initialization/read/claim failures preserve API health/local warnings and disable phone dispatch until restart. The preexisting HEIC test now uses a generated 64×64 white decoder fixture, avoiding a native HEIF-encoder crash observed when encoding after VP8 initialization on this machine. Production HEIC decoding and the upload contract still pass.
 
 | Acceptance area | Evidence and limits |
 | --- | --- |
 | A1 local foundation | Default SQLite, real `/predict` persistence/JSON/UUID round trip, old upload/HEIC/rejection tests; fresh and repeated Alembic upgrade succeeds; no external database used |
 | A2 separate readiness | No TensorFlow import on startup; missing pose configuration reports unavailable without crashing API; missing expression weights do not block safety |
-| A3 resource lifecycle | Fake-camera browser tests check explicit start/arm, Stop/view cleanup, track termination, permission denial/retry, hidden-tab disarm and disconnect cleanup |
+| A3 resource lifecycle | Fake-camera browser tests check explicit start/arm, Stop/view cleanup, track termination, permission denial/retry, hidden-tab disarm, delayed arm/stop races, audio context closure and disconnect cleanup |
 | A4 call gates | Unqualified automatic-real mode rejects arm; uncertainty/lone/undirected/gaps abstain; replay cannot enqueue automatic calls; real manual test needs explicit acknowledgement/configuration |
 | A5 episodes | Policy positive/quiet/cooldown sequences and live transport integration create one persistent incident per continuous synthetic episode |
 | A6 local boundary | Host/Origin rejection, capability checks, missing/wrong WebSocket auth, HTTP/message/JPEG dimension/byte limits, malformed images, nonfinite/backwards timestamps, path traversal and symlink rejection |
 | A7 bounded work | Slow inference test replaces queued frames and counts drops; one active + one pending job; bounded history/clip rings; 18,000 synthetic time steps exercise 30-minute buffer bounds |
-| A8 clips | Actual VP8/WebM encode/decode; Chromium playback; partial clip finalized on disarm; source gap/pre/post metadata; quota, retention and deletion tests. Physical webcam clips untested |
+| A8 clips | Actual VP8/WebM encode/decode; Chromium playback; partial clip finalized on disarm; encoder/deletion serialization and queued-encode cancellation; source gap/pre/post metadata; quota, retention and deletion tests. Physical webcam clips untested |
 | A9 restart | Review labels/JSON survive another app instance; pending countdowns cancelled and submitting actions marked unknown; no automatic rearming/replay |
 | A10 adapter | Mocked success, explicit rejection, invalid response, timeout/unknown, same-action duplicate claim, cancellation, one in flight, cooldown, rolling quota and restart recovery |
 | A11 secrets/offline | Server-side SecretStr configuration, masked recipient and sanitized dry-run summary; no arbitrary destination; dry-run never invokes provider; no credentials used |
@@ -60,11 +60,21 @@ No held-out thresholds were tuned, no participant/session split was claimed, and
 {"path":"clips/session-a.mp4","source":"owner staged recording with consent","license":"private evaluation permission","participants":["p1","p2"],"session":"session-a","angle":"front","lighting":"daylight","category":"noncontact_directed_arm","split":"development","onsets":[3.2]}
 ```
 
-Replay uses the same `Detector` adapter and `EventPolicy` as live mode. It preserves source timestamps and sampling, resets state between clips, writes no live automatic phone actions, and labels output replay. `scripts/evaluate.py` rejects participant/session overlap between splits. It matches each predicted onset to at most one labeled onset in `[onset, onset+4s]`; extra/duplicate predictions count as false positives and unmatched labels as misses. It reports event counts, precision, recall, benign false alerts per hour, delay percentiles, processing timings and observation coverage. Tune only on development data, freeze the model/threshold version, then run held-out once; source/data overlap still requires human review. The script never unlocks calls or automatically marks qualification achieved.
+Replay uses the same `Detector` adapter and `EventPolicy` as live mode. It preserves source timestamps and sampling, resets state between clips, writes no live automatic phone actions, and labels output replay. `scripts/evaluate.py` rejects participant/session overlap between splits, duplicate video content even under renamed paths, invalid onsets, and changes to the frozen model/pipeline/threshold identity. It matches predictions chronologically to the oldest eligible unused labeled onset in `[onset, onset+4s]`, avoiding a nearest-label greedy undercount when windows overlap; extra/duplicate predictions count as false positives and unmatched labels as misses. It reports event counts, precision, recall, continuous-benign false alerts per hour, delay percentiles, processing timings and observation coverage. Set `continuous: true` only on continuous benign recordings; short benign clips are counted separately. Presentation timestamps are preserved where exposed by OpenCV; any nominal-FPS fallback is explicitly reported. Tune only on development data, freeze the model/threshold version, then run held-out once; source/data overlap still requires human review. The script never unlocks calls or automatically marks qualification achieved.
 
 ```bash
 .venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split development --output data/dev.json
-.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split held_out --output data/held-out.json
+.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split held_out --development-report data/dev.json --output data/held-out.json
 ```
 
 Record continuous benign runs separately, inspect false alerts/misses and abstentions, and compare against the frozen baseline. Live manual observation can demonstrate operation but cannot replace labeled timing/denominators needed for accuracy metrics.
+
+## Follow-up engineering audit
+
+The model adapter's initial punch-class index was shifted by one. Upstream's 50th label is zero-based index 49; the corrected adapter accepts punch/slap (49), conditionally kick (50), and rejects push (51). This is a functional correction, not evidence of real-world accuracy.
+
+Live/replay policy settings are now shared and fingerprinted. Replay sampling at 25 FPS now retains the intended 10 analyzed FPS instead of drifting down to ~8.3 FPS. Held-out runs require an explicit development report and reject changed model, artifact, preprocessing, evaluator, or threshold identity.
+
+An initial 30-minute generated-input soak on adapter v2 completed: 17,975 frames in 1800.005 seconds (~9.99 FPS), 12,421,125-byte maximum clip ring, and zero measured RSS growth beyond warm-up. This was not a physical-camera or action-accuracy check. A repeat on final v3 sources, including explicit source fingerprints and disk measurements, remains pending until its completed report is inspected. It uses no human footage and cannot satisfy the physical-camera/accuracy requirements above.
+
+Current v3 processing selects the same directed participant pair for STGCN and the trajectory gate, rather than mixing a bystander pair with another interaction. Visibility loss clears temporal history before recovery. Arming now supplies a fresh monotonic client-clock sample: the first image cannot establish its own apparent freshness. Browser frame age is computed directly from the returned capture timestamp; heartbeat traffic cannot keep stale inference looking active.

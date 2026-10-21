@@ -46,7 +46,7 @@ Plain `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --ws-max-size 10485
 5. Review an incident as Relevant, False alarm, or Unclear. Play the available clip or delete both event and clip.
 6. Disarm cancels countdowns. Stop releases camera/WebSocket/buffers. Switching to another tab/view also releases the camera.
 
-Hidden browser tabs, frame/inference gaps over 1 second, frozen preview, and disconnects pause/disarm monitoring. Returning to a visible tab never re-arms it automatically. A session expires after 30 minutes; stop/start it to renew. Insufficient evidence is distinct from a negative decision. Monitoring never claims the scene is safe.
+Hidden browser tabs, frame/inference gaps over 1 second, frozen preview, and disconnects pause/disarm monitoring. Returning to a visible tab never re-arms it automatically. A session expires after one hour by default (SAFETY_SESSION_TTL_SECONDS, at most 3600 seconds); stop/start it to renew. Insufficient evidence is distinct from a negative decision. Monitoring never claims the scene is safe.
 
 ## Optional expression feature
 
@@ -98,7 +98,7 @@ Clips are served only by incident ID with a capability. Arbitrary paths and syml
 - Camera busy/disconnected: close other camera users, reconnect, Stop and Start.
 - Missing weights/dependencies/checksum mismatch: use the matching environment and explicit downloader; read the model report. No automatic download/fallback silently changes an explicitly selected model.
 - No visible tracks: improve framing/lighting; show both upper bodies. The simple tracker can lose IDs during crossings.
-- Frame age/stale result: stop competing CPU work and re-arm. Capture targets 10 FPS at at most 640×480. UI frame age is relative to a monotonic first-frame clock alignment; it is not an independently synchronized absolute network delay measurement.
+- Frame age/stale result: stop competing CPU work and re-arm. Capture targets 10 FPS at at most 640×480. The UI computes age from browser capture to returned result on the same monotonic clock. Each Arm request supplies `client_now_ms` for server freshness checks; it is never inferred from the first image. Server age still has one-way clock-alignment uncertainty, and neither measure is physical sensor latency.
 - Recording unavailable: the startup VP8/WebM encode/decode probe failed, or the local directory is unwritable. Detection can continue with recording off.
 - Quota/storage warning: free local disk or delete incidents. Clip admission reserves a conservative uncompressed upper bound, so quota rejection can happen before the actual compressed quota is full.
 - Backend disconnected: start/restart the local API, then Start and Arm explicitly. Nothing automatically resumes real actions.
@@ -106,3 +106,19 @@ Clips are served only by incident ID with a capability. Arbitrary paths and syml
 ## Non-contact demonstration
 
 With two consenting adults, show an ordinary gesture, then a slow rehearsed **non-contact** directed arm motion with both upper bodies visible. The baseline or STGCN may abstain or miss the action; do not treat an unsuccessful demonstration as a passed detector test. If policy fires, inspect the possible-motion warning and clip, review-label the incident, and verify a dry-run record. Cancel/disarm before the countdown finishes to demonstrate cancellation. A single person shadowboxing must not generate an inter-person event. This is a live demo; replay is an optional engineering/evaluation tool.
+
+## Policy tuning and sustained runtime check
+
+The server exposes experimental entry/exit scores, candidate duration, quiet interval and cooldown through the `SAFETY_EVENT_*` values in `.env.example`. Entry must exceed exit; scores must be finite. Live and replay use the same settings. Every new event/evaluation report records a stable threshold-version fingerprint. These controls do not qualify a model or enable real automatic calls.
+
+WebSocket heartbeats report server state every 500 ms; they never count as fresh inference. Disarm/Stop and delayed HTTP responses are tied to their original camera session. A delayed response cannot re-arm a stopped/hidden camera, and queued frames from a previous arming generation are discarded.
+
+A generated-input engineering soak can run independently of the real camera:
+
+```bash
+.venv-model/bin/python scripts/soak_test.py --model stgcn --seconds 1800 --output data/SAFETY_SOAK.json
+```
+
+It creates a temporary SQLite app on an ephemeral loopback port, clears call credentials, uses replay/off mode, sends generated high-entropy JPEGs at approximately 10 FPS, enables the bounded clip ring, and samples actual process RSS. It does not open a camera, establish action accuracy, or block the user's separate live app. The report includes its exact input/measurement scope and completion state; a running/failed report is not a passed check.
+
+If local database initialization or writes fail, `/health` remains available and exposes separate persistence readiness. Local preview/warnings can continue; event/history/action operations report a storage-specific 503 where needed. Phone dispatch stays disabled until storage is repaired and the backend is restarted, preventing delayed catch-up attempts. Stop, Disarm, hidden tabs and view changes close the optional alert audio context; the sound preference remains local for the next explicit Arm.

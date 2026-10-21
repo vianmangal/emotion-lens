@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 from .config import settings
 from .database import Base, engine as default_engine, make_engine, get_db
 from .models import cnn_model, db_models
@@ -19,9 +20,12 @@ def create_app(config=settings, engine=None):
     @asynccontextmanager
     async def lifespan(app):
         # Create missing tables only. Existing rows/files are never reset or dropped.
-        async with db_engine.begin() as connection:
-            await connection.run_sync(Base.metadata.create_all)
         app.state.safety = Runtime(config, factory)
+        try:
+            async with db_engine.begin() as connection:
+                await connection.run_sync(Base.metadata.create_all)
+        except SQLAlchemyError:
+            app.state.safety.storage_failed('Local database initialization failed; check disk space/permissions and restart. Live local warnings remain available.')
         await app.state.safety.start()
         try:
             yield
@@ -30,6 +34,12 @@ def create_app(config=settings, engine=None):
             await db_engine.dispose()
 
     app = FastAPI(lifespan=lifespan)
+
+    @app.exception_handler(SQLAlchemyError)
+    async def storage_error(request: Request, exc):
+        message = 'Local storage unavailable. Check disk space/permissions and restart; live local warnings can continue, phone actions are disabled.'
+        request.app.state.safety.storage_failed(message)
+        return JSONResponse({'detail': message}, status_code=503)
     app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ALLOW_ORIGINS, allow_credentials=False,
                        allow_methods=['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
                        allow_headers=['Content-Type', 'X-Safety-Capability', 'X-Session-Capability', 'X-EmotionLens-Client'])
@@ -75,6 +85,7 @@ def create_app(config=settings, engine=None):
     async def health():
         rt = app.state.safety
         return {'status': 'ok', 'model_loaded': cnn_model.model_loaded(),
+                'persistence': {'ready': rt.persistence_ready, 'reason': rt.storage_warning},
                 'expression': {'loaded': cnn_model.model_loaded(), 'configured': bool(config.MODEL_PATH), 'optional': True},
                 'safety': {'ready': rt.detector.ready, 'qualified': rt.detector.qualified, 'reason': rt.detector.reason}}
 

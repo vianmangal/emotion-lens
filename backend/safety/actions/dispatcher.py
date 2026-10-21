@@ -33,6 +33,8 @@ class Dispatcher:
             if existing:
                 return existing.id
             event = await db.get(Incident, event_id) if event_id else None
+            if event_id and event is None:
+                return None  # An incident deleted during creation cannot become a test call.
             event_time = datetime.fromtimestamp(event.created_at, timezone.utc).isoformat() if event else None
             preview = {'dry_run_payload': {'summary': trusted_message(event_id is None, event_time),
                        'recipient': masked_recipient(self.config), 'call_recording_enabled': False,
@@ -43,16 +45,21 @@ class Dispatcher:
                 await db.commit()
             except IntegrityError:
                 await db.rollback()
-                return (await db.scalar(select(Action).where(Action.dedup_key == key))).id
+                duplicate = await db.scalar(select(Action).where(Action.dedup_key == key))
+                if duplicate:
+                    return duplicate.id
+                raise
         return action_id
 
-    async def cancel(self, event_id=None, reason='operator_cancelled', action_id=None):
+    async def cancel(self, event_id=None, reason='operator_cancelled', action_id=None, session_id=None):
         async with self.factory() as db:
             query = update(Action).where(Action.state == 'countdown')
             if event_id is not None:
                 query = query.where(Action.event_id == event_id)
             if action_id is not None:
                 query = query.where(Action.id == action_id)
+            if session_id is not None:
+                query = query.where(Action.event_id.in_(select(Incident.id).where(Incident.session_id == session_id)))
             await db.execute(query.values(state='cancelled', error_category=reason))
             await db.commit()
 

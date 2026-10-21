@@ -23,6 +23,17 @@ def client(config):
         yield c, app
 
 
+def arm_payload(options=None):
+    return {'client_now_ms': time.monotonic()*1000, **(options or {})}
+
+
+def receive_result(ws):
+    while True:
+        result = ws.receive_json()
+        if result.get('type') != 'heartbeat':
+            return result
+
+
 def wait_closed(c, app):
     async def wait():
         for _ in range(100):
@@ -52,8 +63,8 @@ def test_local_security_readiness_and_missing_weights(client):
     assert c.post('/safety/sessions', content='x'*65537).status_code == 413
     s = session(c)
     with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
-        ws.send_json({'capability':s['capability']}); assert ws.receive_json()['type'] == 'connected'
-        assert c.post(f'/safety/sessions/{s["id"]}/arm', json={}, headers={'X-Session-Capability':s['capability']}).status_code == 409
+        ws.send_json({'capability':s['capability']}); assert receive_result(ws)['type'] == 'connected'
+        assert c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload({}), headers={'X-Session-Capability':s['capability']}).status_code == 409
     wait_closed(c, app)
 
 
@@ -65,11 +76,11 @@ def test_websocket_origin_capability_and_invalid_payload(client):
             with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=headers): pass
     with pytest.raises(WebSocketDisconnect):
         with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
-            ws.send_json({'capability':'wrong'}); ws.receive_json()
+            ws.send_json({'capability':'wrong'}); receive_result(ws)
     with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
-        ws.send_json({'capability':s['capability']}); ws.receive_json()
+        ws.send_json({'capability':s['capability']}); receive_result(ws)
         ws.send_text('x'*(1024*1024+1))
-        with pytest.raises(WebSocketDisconnect): ws.receive_json()
+        with pytest.raises(WebSocketDisconnect): receive_result(ws)
     wait_closed(c, app)
 
 
@@ -113,13 +124,13 @@ def test_slow_worker_bounded_queue_hidden_disarm_and_replay_lock(client, monkeyp
     raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48,64,3),np.uint8))[1]).decode()
     s = session(c, 'replay')
     with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
-        ws.send_json({'capability':s['capability']}); ws.receive_json()
+        ws.send_json({'capability':s['capability']}); receive_result(ws)
         h = {'X-Session-Capability':s['capability']}
-        assert c.post(f'/safety/sessions/{s["id"]}/arm',json={'phone_mode':'real'},headers=h).status_code == 409
-        assert c.post(f'/safety/sessions/{s["id"]}/arm',json={'phone_mode':'dry_run'},headers=h).status_code == 200
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({'phone_mode':'real'}),headers=h).status_code == 409
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({'phone_mode':'dry_run'}),headers=h).status_code == 200
         for i in range(15):
             ws.send_json({'v':1,'session_id':s['id'],'frame_id':i,'captured_ms':time.monotonic()*1000,'jpeg':raw})
-        result = ws.receive_json()
+        result = receive_result(ws)
         assert result['dropped_frames'] > 0
         assert not app.state.safety.action_allowed(None, 'real')
         ws.send_json({'v':1,'type':'pause'})
@@ -159,10 +170,10 @@ def test_malformed_or_unreliable_stream_disarms(client, monkeypatch, failure):
     s=session(c)
     raw=base64.b64encode(cv2.imencode('.jpg',np.zeros((48,64,3),np.uint8))[1]).decode()
     with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream',headers=ORIGIN) as ws:
-        ws.send_json({'capability':s['capability']});ws.receive_json()
-        assert c.post(f'/safety/sessions/{s["id"]}/arm',json={},headers={'X-Session-Capability':s['capability']}).status_code==200
+        ws.send_json({'capability':s['capability']});receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({}),headers={'X-Session-Capability':s['capability']}).status_code==200
         t=time.monotonic()*1000
-        ws.send_json({'v':1,'session_id':s['id'],'frame_id':0,'captured_ms':t,'jpeg':raw});ws.receive_json()
+        ws.send_json({'v':1,'session_id':s['id'],'frame_id':0,'captured_ms':t,'jpeg':raw});receive_result(ws)
         payload={'v':1,'session_id':s['id'],'frame_id':1,'captured_ms':t+100,'jpeg':raw}
         if failure=='jpeg':payload['jpeg']='invalid-base64'
         elif failure=='nan':payload['captured_ms']=float('nan')
@@ -170,9 +181,9 @@ def test_malformed_or_unreliable_stream_disarms(client, monkeypatch, failure):
         else:payload['captured_ms']=t+2000
         ws.send_json(payload)
         if failure in ('jpeg','nan'):
-            with pytest.raises(WebSocketDisconnect):ws.receive_json()
+            with pytest.raises(WebSocketDisconnect):receive_result(ws)
         else:
-            assert ws.receive_json()['state']=='unavailable'
+            assert receive_result(ws)['state']=='unavailable'
             assert not app.state.safety.session.policy.armed
     wait_closed(c, app)
 
@@ -184,13 +195,13 @@ def test_live_episode_persists_one_event_clip_and_dry_action(client, monkeypatch
     s=session(c)
     raw=base64.b64encode(cv2.imencode('.jpg',np.zeros((48,64,3),np.uint8))[1]).decode()
     with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream',headers=ORIGIN) as ws:
-        ws.send_json({'capability':s['capability']});ws.receive_json()
+        ws.send_json({'capability':s['capability']});receive_result(ws)
         headers={'X-Session-Capability':s['capability']}
-        assert c.post(f'/safety/sessions/{s["id"]}/arm',json={'phone_mode':'dry_run','clips':True},headers=headers).status_code==200
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({'phone_mode':'dry_run','clips':True}),headers=headers).status_code==200
         created=0;event_ids=set()
         for i in range(18):
             ws.send_json({'v':1,'session_id':s['id'],'frame_id':i,'captured_ms':time.monotonic()*1000,'jpeg':raw})
-            result=ws.receive_json();created+=int(result.get('new_event',False))
+            result=receive_result(ws);created+=int(result.get('new_event',False))
             if result.get('event_id'):event_ids.add(result['event_id'])
             time.sleep(.1)
         assert created==1 and len(event_ids)==1
@@ -209,3 +220,85 @@ def test_live_episode_persists_one_event_clip_and_dry_action(client, monkeypatch
     assert rows[0]['clip_status']=='partial'
     response=c.get(f'/safety/events/{rows[0]["id"]}/clip')
     assert response.status_code==200 and response.headers['content-type']=='video/webm'
+
+
+def test_idle_stream_reports_server_disarm_without_new_frames(client):
+    c, app = client
+    app.state.safety.detector.ready = True
+    s = session(c)
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        response = c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload({}), headers={'X-Session-Capability': s['capability']})
+        generation = response.json()['generation']
+        for _ in range(8):
+            message = ws.receive_json()
+            assert message['type'] == 'heartbeat'
+            if message['state'] == 'disarmed':
+                assert message['generation'] > generation
+                assert 'Fresh frames stopped' in message['reason']
+                break
+        else:
+            raise AssertionError('Server disarm was not delivered on the idle stream')
+
+
+def test_uncertain_camera_evidence_does_not_cancel_explicit_phone_test(client, monkeypatch):
+    c, app = client
+    app.state.safety.detector.ready = True
+    monkeypatch.setattr(app.state.safety.detector, 'process', lambda *_: (Evidence(False, reasons=('Occluded',)), []))
+    s = session(c)
+    raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48,64,3), np.uint8))[1]).decode()
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload({}), headers={'X-Session-Capability': s['capability']})
+        action = c.post('/safety/phone/test', json={'request_id': 'manual-with-camera'}).json()['action_id']
+        ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': 0, 'captured_ms': time.monotonic()*1000, 'jpeg': raw})
+        assert receive_result(ws)['tracking'] == 'insufficient_evidence'
+        rows = c.get('/safety/phone/actions').json()['items']
+        assert next(a for a in rows if a['id'] == action)['state'] == 'countdown'
+
+
+def test_unusable_database_path_preserves_health_and_reports_storage(config, tmp_path):
+    blocked = tmp_path/'blocked'
+    blocked.write_text('preserve this existing file')
+    cfg = config.model_copy(update={'DATABASE_URL': f'sqlite+aiosqlite:///{blocked}/local.db'})
+    with TestClient(create_app(cfg), base_url='http://localhost') as c:
+        health = c.get('/health')
+        assert health.status_code == 200 and not health.json()['persistence']['ready']
+        token = c.get('/safety/bootstrap', headers={'X-EmotionLens-Client': 'local-ui'}).json()['capability']
+        c.headers['X-Safety-Capability'] = token
+        assert c.get('/safety/status').status_code == 200
+        response = c.get('/safety/events')
+        assert response.status_code == 503 and 'Local storage unavailable' in response.json()['detail']
+        assert str(blocked) not in response.text
+        assert c.post('/safety/phone/test', json={'request_id': 'no-storage-test'}).status_code == 503
+    assert blocked.read_text() == 'preserve this existing file'
+
+
+def test_storage_read_failure_is_distinct_from_backend_disconnect(client, monkeypatch):
+    from contextlib import asynccontextmanager
+    from sqlalchemy.exc import OperationalError
+    c, app = client
+    @asynccontextmanager
+    async def unavailable():
+        raise OperationalError('read', {}, Exception('unavailable'))
+        yield
+    monkeypatch.setattr(app.state.safety, 'factory', unavailable)
+    response = c.get('/safety/events')
+    assert response.status_code == 503 and 'Local storage unavailable' in response.json()['detail']
+    assert c.get('/health').status_code == 200
+    assert not c.get('/safety/status').json()['persistence_ready']
+
+
+def test_stale_first_frame_cannot_establish_a_false_fresh_clock(client, monkeypatch):
+    c, app = client
+    app.state.safety.detector.ready = True
+    def unexpected(*args): raise AssertionError('Stale first frame reached inference')
+    monkeypatch.setattr(app.state.safety.detector, 'process', unexpected)
+    s = session(c)
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        headers = {'X-Session-Capability': s['capability']}
+        assert c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload(), headers=headers).status_code == 200
+        ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': 0, 'captured_ms': time.monotonic()*1000-2000, 'jpeg': 'unused'})
+        result = receive_result(ws)
+        assert result['state'] == 'unavailable' and 'Stale' in result['reason']

@@ -15,6 +15,7 @@ class ArmOptions(StrictModel):
     phone_mode: Literal['off', 'dry_run', 'real'] = 'off'
     clips: bool = False
     recipient_acknowledged: bool = False
+    client_now_ms: float | None = Field(default=None, ge=0, allow_inf_nan=False)
 
 
 class FrameMessage(StrictModel):

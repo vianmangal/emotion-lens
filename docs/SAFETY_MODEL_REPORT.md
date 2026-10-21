@@ -1,6 +1,6 @@
 # Live Safety model feasibility report
 
-2026-10-21. **Engineering prototype runs live; detector qualification is unmet.** There are no held-out human action recordings/results. Automatic real calls stay locked. This report does not claim measured violence recognition or pre-contact prediction.
+Updated 2026-10-22. **Engineering prototype runs live; detector qualification is unmet.** There are no held-out human action recordings/results. Automatic real calls stay locked. This report does not claim measured violence recognition or pre-contact prediction.
 
 ## Actual stack and artifacts
 
@@ -34,7 +34,7 @@ Baseline: at least 8 observations and 0.7 seconds of stable history, bounded to 
 
 STGCN: at least 24 observations and 3 seconds of stable history, bounded to 3.3 seconds/120 samples. Convert normalized coordinates back to pixels using actual image dimensions and preserve keypoint confidence. Run upstream `PreNormalize2D → GenSkeFeat(coco,j) → UniformSampleFrames(100, one clip, deterministic seed 255) → PoseDecode → FormatGCNInput(two people) → PackActionInputs`. One clip matches upstream validation; upstream test uses ten. The classifier receives a uniformly sampled complete temporal window, not one frame. The checkpoint was trained using a different pose extraction pipeline; MediaPipe-to-COCO coordinate compatibility does not establish distribution equivalence.
 
-Class mapping: [NTU60 labels](https://github.com/open-mmlab/mmaction2/blob/v1.2.0/tools/data/skeleton/label_map_ntu60.txt), zero-based 50 punching/slapping another person and 51 kicking another person. The adapter also requires the directed-arm baseline gate. That gate narrows coverage to arm interactions; kicks without arm evidence will abstain. Class scores are model outputs, not probabilities of harmful intent.
+Class mapping: [NTU60 labels](https://github.com/open-mmlab/mmaction2/blob/v1.2.0/tools/data/skeleton/label_map_ntu60.txt), zero-based **49** punching/slapping another person (A50) and **50** kicking another person (A51). Index 51 is pushing and is excluded. The initial adapter incorrectly shifted these by one; v2 corrected the mapping; v3 also uses the same directed participant pair for model input and motion gating. Explicit regression tests cover both fixes. The adapter also requires the directed-arm baseline gate. That gate narrows coverage to arm interactions; kicks without arm evidence will abstain. Class scores are model outputs, not probabilities of harmful intent.
 
 Current experimental policy: entry ≥0.75 for 0.3 seconds, exit ≤0.35 with 2 seconds quiet, 30 seconds cooldown after episode end. Frame gaps above 1 second invalidate monitoring and require explicit rearming; frame replacement resets incompatible history. These thresholds are developer defaults, **not calibrated values frozen after a human development set**. STGCN's evidence window alone exceeds the desired 2-second median alert target for some events. No threshold was adjusted against held-out results.
 
@@ -46,19 +46,25 @@ Reproduce: `.venv-model/bin/python scripts/benchmark_models.py`.
 
 | Generated-data measurement | Observed result |
 | --- | --- |
-| Empty 640×480 pose input, after warm-up | median 6.28 ms, p95 6.64 ms |
-| STGCN, stationary two-person synthetic window | median 25.45 ms, p95 30.70 ms |
-| STGCN, directed-arm synthetic window | median 25.10 ms, p95 30.15 ms |
-| Baseline, directed-arm synthetic window | about 0.109 ms |
-| Peak process RSS for combined benchmark | 538,968,064 bytes (~514 MiB) |
+| Empty 640×480 pose input, after warm-up | median 7.51 ms, p95 12.70 ms |
+| STGCN, stationary two-person synthetic window | median 27.28 ms, p95 31.99 ms |
+| STGCN, directed-arm synthetic window | median 26.29 ms, p95 31.22 ms |
+| Baseline, directed-arm synthetic window | about 0.468 ms |
+| Peak process RSS for combined benchmark | 496,353,280 bytes (~473 MiB) |
 | Local HTTP/WebSocket + JPEG decode + actual pose inference, 50 blank frames at 10 FPS | median reported age 19.5 ms, p95 24.55 ms; zero people; abstention |
 
-Those rates exclude real person pose computation costs, camera acquisition, browser permission/UI, and model evidence-window delay. They are not a two-person webcam throughput benchmark. Frame age uses first-frame monotonic clock alignment and is not independently synchronized absolute camera latency.
+Those rates exclude real person pose computation costs, camera acquisition, browser permission/UI, and model evidence-window delay. They are not a two-person webcam throughput benchmark. The historical 50-frame transport measurement used first-frame alignment. Current arming supplies a fresh monotonic client-clock sample before image capture, so a stale first frame is rejected. Server age retains one-way network alignment uncertainty; the UI directly computes browser capture-to-result age. Neither is a physical sensor latency measurement.
 
-Synthetic comparison: stationary and waving fixtures produced no accepted action for either classifier; lone-person fixtures abstained. The trajectory baseline scored the directed-arm fixture ~0.93. STGCN's highest class for that artificial fixture was index 53 (hugging), so it produced **no accepted action**. This is useful evidence that a loaded pretrained model is not a qualified detector. Synthetic bodies do not establish real-world accuracy. The JSON benchmark records the outputs without replacing them with expected labels.
+Synthetic comparison: stationary and waving fixtures produced no accepted action for either classifier; lone-person fixtures abstained. The trajectory baseline scored the directed-arm fixture ~0.93. STGCN's highest class for that artificial fixture was index 53 (pointing at the other person), so it produced **no accepted action**. This is useful evidence that a loaded pretrained model is not a qualified detector. Synthetic bodies do not establish real-world accuracy. The JSON benchmark records the outputs without replacing them with expected labels.
 
 ## Licensing / qualification limits
 
 [MediaPipe code](https://github.com/google-ai-edge/mediapipe/blob/master/LICENSE) and [MMAction2 code](https://github.com/open-mmlab/mmaction2/blob/v1.2.0/LICENSE) use Apache-2.0. Artifacts are obtained from their official references and not redistributed in this repository. The exact bundle/checkpoint redistribution rights and inherited NTU dataset conditions have not been independently resolved here; code licensing must not be assumed to settle all weight/data rights. Licensing verification therefore remains part of the unmet qualification gate, alongside real participant/session-separated evaluation.
 
 Decision: keep both adapters available for **experimental live local use** and reproducible replay, default to the understandable trajectory baseline, and lock automatic real calls. STGCN is technically usable on this machine, but neither adapter has passed human positive/hard-negative or continuous benign evaluation. The owner's request is for live operation; no prerecorded clip is required to operate it. Without evaluation data, accuracy targets remain unmeasured, and the overall qualified detector feature remains unfinished.
+
+The [NTU dataset publisher](https://rose1.ntu.edu.sg/dataset/actionRecognition/) confirms participant consent, but requires registration/approval and an academic non-commercial release agreement for dataset access, and restricts redistribution/derived datasets. No NTU footage or skeleton dataset was downloaded for evaluation. These dataset terms do not by themselves resolve rights for the separate STGCN checkpoint. A [MediaPipe maintainer clarification](https://github.com/google-ai-edge/mediapipe/issues/6306) describes the Full pose bundle as Apache-2.0; it is not treated as artifact-specific proof for our exact Lite bundle. The remaining rights gap is recorded rather than assuming that code licensing covers every artifact.
+
+Public evaluation candidate inspected: [UT-Interaction](https://cvrc.ece.utexas.edu/SDHA2010/Human_Interaction.html) provides short staged interaction sequences with labels, but does not provide a clear artifact redistribution/license statement on the inspected page and cannot supply the required hour of continuous benign webcam footage. It has not been downloaded or represented as the held-out webcam evaluation.
+
+For more than two visible people, v3 selects the baseline candidate's source/target IDs for the temporal tensor. It does not combine a score for the first two tracked people with a motion gate for unrelated bystanders. Unreliable relevant landmarks clear history, requiring warm-up after occlusion. These correctness fixes do not supply missing human evaluation or calibrated thresholds.

@@ -46,7 +46,7 @@ See [Local setup](docs/LOCAL_SETUP.md) for camera recovery, optional expression 
 - Restart recovery, persistent call deduplication/cooldown/quota, no automatic retry on ambiguous delivery.
 - Original image upload and webcam snapshot views. Optional TensorFlow and local expression weights are loaded only when requested.
 
-**Detector qualification remains unmet.** Live monitoring works experimentally; there is no measured held-out precision/recall or real webcam accuracy claim. Automatic real calls are locked in code. Explicit configured real test calls are available independently. No real call was placed during implementation. See [model feasibility](docs/SAFETY_MODEL_REPORT.md) and [actual verification results](docs/SAFETY_EVALUATION.md).
+**Detector qualification remains unmet.** Live monitoring works experimentally; there is no measured held-out precision/recall or real webcam accuracy claim. Automatic real calls are locked in code. Explicit configured real test calls are available independently. No real call was placed during implementation. See [model feasibility](docs/SAFETY_MODEL_REPORT.md), [actual verification results](docs/SAFETY_EVALUATION.md), and the [requirement audit](docs/IMPLEMENTATION_AUDIT.md).
 
 ## Checks
 
@@ -63,7 +63,8 @@ Tests use mocks/fake camera input, temporary SQLite databases, and generated med
 
 ```bash
 .venv-safety/bin/python scripts/replay.py path/to/video.mp4 --output data/replay.json
-.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --output data/evaluation.json
+.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split development --output data/dev.json
+.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split held_out --development-report data/dev.json --output data/evaluation.json
 ```
 
 ## Architecture

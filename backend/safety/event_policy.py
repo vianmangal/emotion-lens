@@ -1,4 +1,11 @@
 from dataclasses import dataclass
+import hashlib
+import json
+
+
+def threshold_version(options):
+    encoded = json.dumps(options, sort_keys=True, separators=(',', ':')).encode()
+    return f'experimental-{hashlib.sha256(encoded).hexdigest()[:12]}'
 
 
 @dataclass(frozen=True)
@@ -8,6 +15,7 @@ class Evidence:
     directed: bool = False
     people: int = 0
     reasons: tuple = ()
+    track_ids: tuple = ()
 
 
 class EventPolicy:

@@ -19,6 +19,7 @@ class Detector:
     qualified = False  # Real-world qualification is unmet. No environment flag bypasses this gate.
 
     def __init__(self, config):
+        self.config = config
         self.pose = None
         self.temporal = TrajectoryBaseline()
         self.tracker = Tracker()
@@ -64,11 +65,14 @@ class Detector:
             outside = np.any((points[:, :2] < 0) | (points[:, :2] > 1), axis=1)
             points[outside, 2] = 0  # Inferred off-screen limbs cannot satisfy visibility.
         tracks, changed = self.tracker.update(poses)
+        overlays = [{'id': p['id'], 'box': p['box'], 'points': p['points'].tolist()} for p in tracks]
+        if any(p['points'][[5, 6, 7, 8, 9, 10, 11, 12], 2].min() < .55 for p in tracks):
+            self.history.clear()
+            return Evidence(False, people=len(tracks), reasons=('Relevant limbs occluded; rebuilding temporal history',)), overlays
         if changed or (self.history and (t - self.history[-1][0] > 1 or t <= self.history[-1][0])):
             self.history.clear()
         self.history.append((t, tracks))
         while self.history and t - self.history[0][0] > self.temporal.window_seconds:
             self.history.popleft()
         evidence = self.temporal.classify(list(self.history), frame.shape)
-        overlays = [{'id': p['id'], 'box': p['box'], 'points': p['points'].tolist()} for p in tracks]
         return evidence, overlays

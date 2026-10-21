@@ -2,6 +2,9 @@
 import numpy as np
 from backend.safety.event_policy import Evidence
 
+# The upstream text file uses one-based line numbers: A50/A51 -> indices 49/50.
+STRIKING_CLASSES = {49: 'punching/slapping other person', 50: 'kicking other person'}
+
 
 class TrajectoryBaseline:
     version = 'directed-wrist-trajectory-v1 (experimental)'
@@ -13,12 +16,15 @@ class TrajectoryBaseline:
         current = history[-1][1]
         if len(current) < 2:
             return Evidence(False, people=len(current), reasons=('Two visible participants required',))
+        if any(p['points'][[5, 6, 7, 8, 9, 10, 11, 12], 2].min() < .55 for _, tracks in history for p in tracks):
+            return Evidence(False, people=len(current), reasons=('Temporal window contains occluded limbs',))
         # Inspect a short trailing trajectory, after a longer stable observation window.
         old = min(history, key=lambda h: abs(h[0] - (history[-1][0] - .35)))
         dt = history[-1][0] - old[0]
         if dt < .15:
             return Evidence(False, reasons=('Insufficient motion sampling',))
         score = 0.
+        pair = ()
         for source in current:
             previous = next((p for p in old[1] if p['id'] == source['id']), None)
             if previous is None:
@@ -40,13 +46,15 @@ class TrajectoryBaseline:
                     extension = float(np.linalg.norm(p[wrist, :2] - p[shoulder, :2])) / scale
                     proximity = float(np.linalg.norm(p[wrist, :2] - center)) / scale
                     if alignment > .8 and speed > 2 and extension > .9 and proximity < 2.5:
-                        score = max(score, min(.99, .75 + (speed - 2) * .05))
-        return Evidence(True, score, score >= .75, len(current), ('Experimental trajectory baseline; review footage',))
+                        candidate_score = min(.99, .75 + (speed - 2) * .05)
+                        if candidate_score > score:
+                            score, pair = candidate_score, (source['id'], target['id'])
+        return Evidence(True, score, score >= .75, len(current), ('Experimental trajectory baseline; review footage',), pair)
 
 
 class STGCNTemporal:
     """Official MMAction2 COCO-17 NTU60 pipeline. Optional isolated model environment."""
-    version = 'mmaction2-stgcn-ntu60-coco17-experimental'
+    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v3'
     window_seconds = 3.3
 
     def __init__(self, config, checkpoint):
@@ -57,7 +65,10 @@ class STGCNTemporal:
     def classify(self, history, shape):
         if len(history) < 24 or history[-1][0] - history[0][0] < 3:
             return Evidence(False, reasons=('STGCN requires 3 seconds of stable poses',))
-        ids = [t['id'] for t in history[-1][1]][:2]
+        candidate = TrajectoryBaseline().classify(history, shape)
+        # Temporal classification and the directed-motion gate must describe the
+        # same pair, even when bystanders have older/lower track IDs.
+        ids = list(candidate.track_ids) if candidate.directed else [t['id'] for t in history[-1][1]][:2]
         if len(ids) < 2:
             return Evidence(False, people=len(ids), reasons=('Two visible participants required',))
         h, w = shape[:2]
@@ -73,7 +84,8 @@ class STGCNTemporal:
         result = self.infer(self.model, {'keypoint': points, 'keypoint_score': scores, 'total_frames': len(history), 'img_shape': (h, w), 'original_shape': (h, w), 'start_index': 0, 'label': -1, 'modality': 'Pose'})
         values = result.pred_score.detach().cpu().numpy()
         top = int(values.argmax())
-        # NTU60 indices 50/51 are punching/slapping and kicking another person.
         # Also require a directed trajectory; class rank alone cannot trigger an event.
-        directed = TrajectoryBaseline().classify(history, shape).directed
-        return Evidence(True, float(values[top]) if top in (50, 51) else 0., directed, 2, (f'NTU60 class index {top}; experimental model score',))
+        directed = candidate.directed
+        label = STRIKING_CLASSES.get(top, 'unsupported action')
+        return Evidence(True, float(values[top]) if top in STRIKING_CLASSES else 0., directed, 2,
+                        (f'NTU60 class index {top} ({label}); experimental model score',), tuple(ids) if directed else ())

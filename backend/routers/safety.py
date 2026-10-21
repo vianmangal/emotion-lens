@@ -57,31 +57,32 @@ async def create_session(options: SessionOptions, rt=Depends(authorized)):
             s = await rt.create(options.source)
         except ValueError as exc:
             raise HTTPException(409, str(exc)) from exc
-    return {'id': s.id, 'capability': s.capability, 'expires_in_seconds': 1800, 'source': s.source}
+    return {'id': s.id, 'capability': s.capability, 'expires_in_seconds': rt.config.SAFETY_SESSION_TTL_SECONDS, 'source': s.source}
 
 
 @router.post('/sessions/{session_id}/arm')
 async def arm(session_id: str, options: ArmOptions, request: Request, rt=Depends(authorized)):
-    get_session(rt, session_id, request.headers.get('x-session-capability', ''))
+    s = get_session(rt, session_id, request.headers.get('x-session-capability', ''))
     try:
-        await rt.arm(options)
+        await rt.arm(options, expected_session=s)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
-    return {'state': rt.session.policy.state}
+    return {'state': s.policy.state, 'generation': s.generation}
 
 
 @router.post('/sessions/{session_id}/disarm')
 async def disarm(session_id: str, request: Request, rt=Depends(authorized)):
-    get_session(rt, session_id, request.headers.get('x-session-capability', ''))
-    await rt.disarm()
+    s = get_session(rt, session_id, request.headers.get('x-session-capability', ''))
+    await rt.disarm(expected_session=s)
     return {'state': 'disarmed'}
 
 
 @router.delete('/sessions/{session_id}')
 async def end_session(session_id: str, request: Request, rt=Depends(authorized)):
     # Expired sessions can still be ended by their owner.
-    if rt.session and rt.session.id == session_id and secrets.compare_digest(request.headers.get('x-session-capability', ''), rt.session.capability):
-        await rt.end()
+    s = rt.session
+    if s and s.id == session_id and secrets.compare_digest(request.headers.get('x-session-capability', ''), s.capability):
+        await rt.end(expected_session=s)
     return {'state': 'disarmed'}
 
 
@@ -111,6 +112,11 @@ async def stream(ws: WebSocket, session_id: str):
         return
     queue = asyncio.Queue(maxsize=1)
     dropped = False
+    send_lock = asyncio.Lock()
+
+    async def send(payload):
+        async with send_lock:
+            await ws.send_json(payload)
 
     async def receive():
         nonlocal dropped
@@ -118,9 +124,11 @@ async def stream(ws: WebSocket, session_id: str):
             raw = await ws.receive_text()
             if len(raw.encode('utf-8')) > MAX_MESSAGE:
                 raise ValueError('WebSocket message exceeds 1 MiB')
+            if time.monotonic() > s.expires or s is not rt.session:
+                raise ValueError('Session expired or closed')
             payload = json.loads(raw)
             if isinstance(payload, dict) and payload == {'v': 1, 'type': 'pause'}:
-                await rt.disarm('Browser hidden or capture paused; explicitly re-arm')
+                await rt.disarm('Browser hidden or capture paused; explicitly re-arm', expected_session=s)
                 continue
             frame = FrameMessage.model_validate(payload)
             if frame.session_id != s.id or frame.frame_id <= s.last_id:
@@ -136,17 +144,27 @@ async def stream(ws: WebSocket, session_id: str):
                 dropped = True
                 s.dropped += 1
                 s.last_evidence = None
-            queue.put_nowait((frame, s.last_frame))
+            queue.put_nowait((frame, s.last_frame, s.generation))
 
     async def process():
         nonlocal dropped
         while True:
-            frame, received_at = await queue.get()
+            frame, received_at, generation = await queue.get()
+            if generation != s.generation:
+                continue
             was_dropped, dropped = dropped, False
             result = await rt.process(s, frame, received_at, was_dropped)
-            await ws.send_json(result)
+            await send({**result, 'generation': generation})
 
-    tasks = [asyncio.create_task(receive()), asyncio.create_task(process())]
+    async def heartbeat():
+        while True:
+            await asyncio.sleep(.5)
+            if s is not rt.session:
+                return
+            await send({'v': 1, 'type': 'heartbeat', 'session_id': s.id,
+                        'state': s.policy.state, 'reason': s.reason, 'generation': s.generation})
+
+    tasks = [asyncio.create_task(receive()), asyncio.create_task(process()), asyncio.create_task(heartbeat())]
     try:
         done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
         for task in done:
@@ -159,7 +177,7 @@ async def stream(ws: WebSocket, session_id: str):
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
             if rt.session is s:
-                await rt.end()
+                await rt.end(expected_session=s)
             try:
                 await ws.close(code=1000)
             except RuntimeError:
@@ -212,16 +230,25 @@ async def clip(event_id: str, rt=Depends(authorized)):
 @router.delete('/events/{event_id}')
 async def delete_event(event_id: str, rt=Depends(authorized)):
     await rt.dispatcher.cancel(event_id=event_id, reason='event_deleted')
-    async with rt.factory() as db:
-        e = await db.get(Incident, event_id)
-        if not e:
-            raise HTTPException(404, 'Incident not found')
-        try:
-            await asyncio.to_thread(rt.store.delete, e.clip_name)
-        except (OSError, ValueError):
-            raise HTTPException(409, 'Clip deletion failed; metadata retained to retry')
-        await db.delete(e)
-        await db.commit()
+    async with rt.control_lock:
+        s = rt.session
+        if s and s.recording_id == event_id:
+            s.recording_id = None
+            s.recording = []
+            s.recording_bytes = 0
+    # Share the encoder's lock: a completed encode cannot commit a clip reference
+    # after deletion has already removed the corresponding incident.
+    async with rt.clip_lock:
+        async with rt.factory() as db:
+            e = await db.get(Incident, event_id)
+            if not e:
+                raise HTTPException(404, 'Incident not found')
+            try:
+                await asyncio.to_thread(rt.store.delete, e.clip_name)
+            except (OSError, ValueError):
+                raise HTTPException(409, 'Clip deletion failed; metadata retained to retry')
+            await db.delete(e)
+            await db.commit()
     return {'deleted': True, 'call_note': 'Submitted calls cannot be recalled; quota records are retained'}
 
 
@@ -246,6 +273,8 @@ async def cancel_phone(action_id: str, rt=Depends(authorized)):
 
 @router.post('/phone/test', status_code=202)
 async def phone_test(options: PhoneTest, rt=Depends(authorized)):
+    if not rt.persistence_ready:
+        raise HTTPException(503, 'Phone actions require writable local storage. Check disk space/permissions and restart.')
     if options.mode == 'real' and (not options.recipient_acknowledged or not configured(rt.config)):
         raise HTTPException(409, 'Real test requires configured recipient and explicit acknowledgement of consent and charges')
     return {'action_id': await rt.dispatcher.enqueue(options.mode, request_id=options.request_id), 'state': 'countdown'}

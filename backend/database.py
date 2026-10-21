@@ -17,7 +17,12 @@ def make_engine(url):
     if parsed.drivername != 'sqlite+aiosqlite':
         raise ValueError('Local operation requires sqlite+aiosqlite; export legacy databases separately.')
     if parsed.database and parsed.database != ':memory:':
-        Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
+        try:
+            Path(parsed.database).parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            # Leave connection lazy: lifespan can expose a storage warning while
+            # retaining health/local camera warnings when this path is unusable.
+            pass
     engine = create_async_engine(url, connect_args={'timeout': 10})
 
     @event.listens_for(engine.sync_engine, 'connect')
