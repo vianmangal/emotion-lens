@@ -29,7 +29,7 @@ npm run test:e2e --prefix deep_fe/frontend
 | A11 secrets/offline | Server-side SecretStr configuration, masked recipient and sanitized dry-run summary; no arbitrary destination; dry-run never invokes provider; no credentials used |
 | A12 documentation/cleanup | Local setup, source/checksum/config/measurement reports; Terraform, cloud deploy workflow, S3 entrypoint and untested Docker/Compose removed; replacement CI only tests/builds |
 
-The new CI workflow has not yet been executed on GitHub. Existing tracked weights and local data were preserved. No cloud resources were inspected or modified.
+GitHub Ubuntu CI also passed the backend tests, frontend build, and browser tests for implementation commit `029204b`. Existing tracked weights and local data were preserved. No cloud resources were inspected or modified.
 
 The ordinary development server was also exercised through a real localhost WebSocket at 10 FPS with 50 generated blank JPEG frames using the actual MediaPipe detector and STGCN configuration. It correctly returned zero people/insufficient evidence with no incidents. Reported frame age: median 19.5 ms, p95 24.55 ms. This tests transport and the real pose pipeline, not two-person webcam accuracy or full temporal-model invocation on real poses.
 
