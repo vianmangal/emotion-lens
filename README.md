@@ -35,6 +35,8 @@ Open **http://127.0.0.1:5173**, select **Live Safety**, click **Start camera**, 
 
 See [Local setup](docs/LOCAL_SETUP.md) for camera recovery, optional expression weights, phone configuration, migrations, and cleanup.
 
+For a presentation with two people on camera, use the [live demo walkthrough](docs/DEMO.md), including rehearsal, clip review, dry-run calls and keeping the Mac awake.
+
 ## What is implemented
 
 - Live webcam selection and preview; explicit Start/Stop and Arm/Disarm.
