@@ -15,7 +15,7 @@ Updated 2026-10-22 against `PRD-LIVE-SAFETY.md` v1.0. This audit preserves the P
 | MVP 7 / journey 6,9,11: optional calls, visible mode, countdown and cancellation | Dry-run summaries, masked recipient, mocked ElevenLabs transport, durable claims/quotas/recovery, cancel controls | Dry run and explicit manual real-test adapter implemented; automatic real mode intentionally unavailable while qualification is unmet |
 | MVP 8: measured false alerts, misses and latency | Replay/evaluator, validated manifest, frozen development identity, one-to-one matching and timing reports | Harness implemented; human evaluation not performed |
 
-All requested screen controls are present. Text/icons accompany alerts, and controls use native buttons, selects and labels with focus styling. Fake-camera tests cover selected keyboard-compatible browser controls, but a complete manual keyboard/accessibility audit has not been performed. Capture and inference FPS count actual sent/results; the UI computes frame age on the browser clock and suppresses stale overlays.
+All requested screen controls are present. Text/icons accompany alerts, and controls use native buttons, selects and labels with focus styling. A keyboard-only Chromium test navigates live controls, dry-run cancellation, incident review, clip playback/closure and deletion using Tab, Enter, Space and native-select type-ahead. Physical-device and assistive-technology checks, and a full manual accessibility audit, remain unperformed. Capture and inference FPS count actual sent/results; the UI computes frame age on the browser clock and suppresses stale overlays.
 
 ## Detection gates
 

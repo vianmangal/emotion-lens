@@ -1,7 +1,16 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 
-async function setup(page) {
+async function tabTo(page, target) {
+  await expect(target).toBeVisible();
+  for (let i = 0; i < 80; i++) {
+    if (await target.evaluate(element => element === document.activeElement)) return;
+    await page.keyboard.press('Tab');
+  }
+  await expect(target).toBeFocused();
+}
+
+async function setup(page, { keyboard = false } = {}) {
   const calls = [], frames = [], sockets = [];
   let actions = [];
   await page.addInitScript(() => {
@@ -39,7 +48,10 @@ async function setup(page) {
       }
     });
   });
-  await page.goto('/'); await page.getByRole('button', { name: /Live Safety/ }).click();
+  await page.goto('/');
+  const live = page.getByRole('button', { name: /Live Safety/ });
+  if (keyboard) { await tabTo(page, live); await page.keyboard.press('Enter'); }
+  else await live.click();
   return { calls, frames, sockets };
 }
 
@@ -58,6 +70,72 @@ test('live frames, explicit arm, stop and tab cleanup', async ({ page }) => {
   await page.getByRole('button', { name: /Incident History/ }).click();
   await expect.poll(() => page.evaluate(() => window.testStreams.flatMap(s => s.getTracks()).every(t => t.readyState === 'ended'))).toBe(true);
   await expect.poll(() => calls.some(c => c.method === 'DELETE' && c.path.endsWith('/test-session'))).toBe(true);
+});
+
+test('keyboard-only live controls, dry-run cancellation and incident review', async ({ page }) => {
+  test.setTimeout(45000);
+  const { calls, frames } = await setup(page, { keyboard: true });
+  let events = [{ id: 'keyboard-event', created_at: Date.now() / 1000, source: 'live', status: 'closed',
+    model_version: 'keyboard-fixture', score: .9, clip_status: 'ready', review_label: 'unreviewed', actions: [] }];
+  await page.route(url => url.pathname.startsWith('/safety/events'), async route => {
+    const request = route.request();
+    if (new URL(request.url()).pathname.endsWith('/clip')) {
+      await route.fulfill({ body: fs.readFileSync(new URL('../../../backend/tests/fixtures/black.webm', import.meta.url)), contentType: 'video/webm' });
+    } else if (request.method() === 'PATCH') {
+      events[0].review_label = request.postDataJSON().label;
+      await route.fulfill({ json: events[0] });
+    } else if (request.method() === 'DELETE') {
+      events = [];
+      await route.fulfill({ json: { deleted: true } });
+    } else await route.fulfill({ json: { items: events, total: events.length } });
+  });
+  await tabTo(page, page.getByRole('combobox', { name: 'Camera', exact: true }));
+  await page.keyboard.press('Home');
+  const sound = page.getByLabel('Local alert sound');
+  await tabTo(page, sound); await page.keyboard.press('Space');
+  await expect(sound).toBeChecked();
+  await page.keyboard.press('Space');
+  const clips = page.getByLabel('Save event clips (opt in)');
+  await tabTo(page, clips); await page.keyboard.press('Space');
+  await expect(clips).toBeChecked();
+  await tabTo(page, page.getByRole('combobox', { name: 'Phone mode', exact: true }));
+  // Native select type-ahead works in macOS headless Chromium, where popup arrow keys do not.
+  await page.keyboard.press('d'); await page.keyboard.press('Tab');
+  await expect(page.getByRole('combobox', { name: 'Phone mode', exact: true })).toHaveValue('dry_run');
+  await tabTo(page, page.getByRole('button', { name: 'Start camera' }));
+  await page.keyboard.press('Enter');
+  const arm = page.getByRole('button', { name: 'Arm monitoring' });
+  await expect(arm).toBeEnabled();
+  await tabTo(page, arm); await page.keyboard.press('Enter');
+  await expect.poll(() => frames.length).toBeGreaterThan(2);
+  await tabTo(page, page.getByRole('button', { name: 'Disarm', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(arm).toBeEnabled();
+  await tabTo(page, page.getByRole('button', { name: 'Stop', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect.poll(() => page.evaluate(() => window.testStreams.flatMap(s => s.getTracks()).every(t => t.readyState === 'ended'))).toBe(true);
+  await tabTo(page, page.getByRole('button', { name: 'Test dry run' }));
+  await page.keyboard.press('Enter');
+  await tabTo(page, page.getByRole('button', { name: 'Cancel now', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect.poll(() => calls.some(c => c.path.endsWith('/test-action/cancel'))).toBe(true);
+  await expect(page.getByRole('button', { name: 'Send real test call' })).toBeDisabled();
+  await tabTo(page, page.getByRole('button', { name: /Incident History/ }));
+  await page.keyboard.press('Enter');
+  const review = page.getByLabel('Review incident keyboard-event');
+  await tabTo(page, review);
+  await page.keyboard.press('r'); await page.keyboard.press('Tab');
+  await expect(review).toHaveValue('relevant');
+  await tabTo(page, page.getByRole('button', { name: 'Play clip' }));
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Incident clip')).toBeVisible();
+  await tabTo(page, page.getByRole('button', { name: 'Close clip' }));
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Incident clip')).toHaveCount(0);
+  await tabTo(page, page.getByRole('button', { name: 'Delete event and clip' }));
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('No incidents recorded.')).toBeVisible();
+  expect(calls.filter(c => c.path.endsWith('/phone/test')).every(c => c.body.mode === 'dry_run')).toBe(true);
 });
 
 test('permission denial recovers on explicit retry', async ({ page }) => {
