@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import useSafetySession from '../hooks/useSafetySession';
 import { safetyRequest } from '../api/safety';
+import LiveAccuracyTest from '../components/safety/LiveAccuracyTest';
 
 const DETECTION_OPTIONS = { phone_mode: 'off', clips: false };
 const BONES = [[0, 1], [0, 2], [1, 3], [2, 4], [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [5, 11], [6, 12], [11, 12], [11, 13], [13, 15], [12, 14], [14, 16]];
@@ -10,6 +11,7 @@ export default function LiveSafety() {
   const [status, setStatus] = useState(null), [error, setError] = useState('');
   const [device, setDevice] = useState(''), [busy, setBusy] = useState(false);
   const [fresh, setFresh] = useState(false);
+  const [testCue, setTestCue] = useState(null);
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -87,13 +89,15 @@ export default function LiveSafety() {
             </g>;
           })}
         </svg>
+        {testCue && <div className="pointer-events-none absolute inset-x-0 top-3 text-center"><span className="inline-block rounded-xl bg-black/85 px-4 py-2 text-lg font-bold text-cyan-200" aria-live="polite">{testCue}</span></div>}
         {!session.camera && <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-zinc-500">{busy || session.starting ? 'Opening camera…' : 'Start the camera to track both people.'}</div>}
       </div></div>
       <div role="status" aria-live="polite" className={`flex flex-wrap items-center justify-between gap-2 border-t p-4 ${detected ? 'border-red-900 bg-red-950/60 text-red-200' : 'border-zinc-800 text-zinc-300'}`}>
-        <div><p className="font-semibold">{message}</p>{paused && <p className="mt-1 text-xs text-zinc-400">{current?.reason?.replaceAll('re-arm', 'resume detection') || 'Click Resume detection to continue.'}</p>}</div>
+        <div><p className="font-semibold">{message}</p>{paused && <p className="mt-1 text-xs text-zinc-400">{current?.reason?.replaceAll('re-arm', 'resume detection') || 'Click Resume detection to continue.'}</p>}{session.armed && isFresh && current?.tracking !== 'observed' && <p className="mt-1 text-xs text-zinc-400">{current?.reason}</p>}</div>
         <span className="text-xs text-zinc-400">{tracks.length} {tracks.length === 1 ? 'person' : 'people'} tracked{session.armed && isFresh ? ` · ${session.inferenceFps.toFixed(0)} FPS` : ''}</span>
       </div>
     </section>
     <p className="text-xs text-zinc-500">Keep both people’s upper bodies and arms visible in the frame.</p>
+    <LiveAccuracyTest armed={session.armed} result={current} status={status} onCue={setTestCue} />
   </div>;
 }

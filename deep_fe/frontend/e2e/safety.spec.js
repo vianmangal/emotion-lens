@@ -25,7 +25,7 @@ async function setup(page) {
     calls.push({ path, method: request.method(), body: request.postDataJSON() });
     let body = {};
     if (path.endsWith('/bootstrap')) body = { capability: 'test-local-capability' };
-    else if (path.endsWith('/status')) body = { ready: true, qualified: false };
+    else if (path.endsWith('/status')) body = { ready: true, qualified: false, model: 'test-model', event_policy: { entry: .75, exit: .35, entry_seconds: .3, quiet_seconds: 2, cooldown: 30 } };
     else if (path.endsWith('/sessions') && request.method() === 'POST') body = { id: 'test-session', capability: 'test-session-capability', live_only: true };
     else if (path.endsWith('/arm')) body = { state: 'warming_up', generation: 1 };
     await route.fulfill({ json: body });
@@ -189,4 +189,71 @@ test('old capture timestamps hide tracks and hit warnings despite a low server a
   await expect(page.getByRole('status')).toContainText('Waiting for fresh video');
   await expect(page.locator('svg rect')).toHaveCount(0);
   await expect(page.getByRole('status')).not.toContainText('Possible hit detected');
+});
+
+test('live accuracy trials score detected hits and false alerts, then export operator-confirmed results', async ({ page }) => {
+  test.setTimeout(35000);
+  const { calls, setEvidence } = await setup(page);
+  setEvidence({ state: 'monitoring', people: 2, tracks: pair, tracking: 'observed' });
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await expect(page.getByRole('status')).toContainText('No hitting motion detected');
+  await page.getByRole('button', { name: 'Test detection accuracy' }).click();
+  const panel = page.getByRole('region', { name: 'Live accuracy test' });
+  await expect(panel.getByTestId('trial-accuracy')).toHaveText('—');
+  await panel.getByRole('button', { name: 'Start trial', exact: true }).click();
+  await expect(page.getByText(/^MOVE NOW ·/)).toBeVisible();
+  setEvidence({ state: 'alert_active', people: 2, tracks: pair, tracking: 'observed' });
+  await expect(panel.getByText('Detector result: alert observed')).toBeVisible({ timeout: 10000 });
+  // An automatic observation cannot become human ground truth until confirmed.
+  await expect(panel.getByTestId('hit-recall')).toHaveText('—');
+  await panel.getByRole('button', { name: 'Confirm action & save' }).click();
+  await expect(panel.getByTestId('hit-recall')).toHaveText('100%');
+  await expect(panel.getByTestId('trial-accuracy')).toHaveText('—');
+  setEvidence({ state: 'monitoring', people: 2, tracks: pair, tracking: 'observed' });
+  await expect(page.getByRole('status')).toContainText('No hitting motion detected');
+  await panel.getByRole('combobox', { name: 'Trial action' }).selectOption('normal');
+  await panel.getByRole('button', { name: 'Start trial', exact: true }).click();
+  await expect(page.getByText(/^MOVE NOW ·/)).toBeVisible();
+  setEvidence({ state: 'alert_active', people: 2, tracks: pair, tracking: 'observed' });
+  await expect(panel.getByText('Detector result: alert observed')).toBeVisible({ timeout: 10000 });
+  await panel.getByRole('button', { name: 'Confirm action & save' }).click();
+  await expect(panel.getByTestId('alert-precision')).toHaveText('50%');
+  await expect(panel.getByTestId('trial-accuracy')).toHaveText('50%');
+  await expect(panel.getByTestId('accuracy-counts')).toContainText('False alerts: 1');
+  const downloadPromise = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'Export test results' }).click();
+  const download = await downloadPromise;
+  const { readFile } = await import('node:fs/promises');
+  const report = JSON.parse(await readFile(await download.path(), 'utf8'));
+  expect(report.summary).toMatchObject({ true_positive: 1, false_positive: 1, scored_trials: 2, accuracy: .5 });
+  expect(report.detector).toMatchObject({ model: 'test-model', event_policy: { cooldown: 0 } });
+  expect(report.trials).toHaveLength(2);
+  expect(report.trials.every(t => t.inference_frames > 0 && t.tracking_coverage > .5)).toBe(true);
+  expect(calls.some(c => /\/events|\/phone/.test(c.path))).toBe(false);
+});
+
+test('stopped accuracy trials are unscored and cannot inflate accuracy', async ({ page }) => {
+  const { setEvidence } = await setup(page);
+  setEvidence({ state: 'monitoring', people: 2, tracks: pair, tracking: 'observed' });
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await expect(page.getByRole('status')).toContainText('No hitting motion detected');
+  await page.getByRole('button', { name: 'Test detection accuracy' }).click();
+  const panel = page.getByRole('region', { name: 'Live accuracy test' });
+  await panel.getByRole('button', { name: 'Start trial', exact: true }).click();
+  await page.getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(panel.getByText('Trial not scored', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Confirm action & save' })).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Dismiss & retry' }).click();
+  await expect(panel.getByTestId('accuracy-counts')).toContainText('Unscored: 1');
+  await expect(panel.getByTestId('trial-accuracy')).toHaveText('—');
+});
+
+test('stale or insufficient tracking cannot start an accuracy trial', async ({ page }) => {
+  await setup(page);
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await page.getByRole('button', { name: 'Test detection accuracy' }).click();
+  const panel = page.getByRole('region', { name: 'Live accuracy test' });
+  await panel.getByRole('button', { name: 'Start trial', exact: true }).click();
+  await expect(panel.getByText('Wait for exactly two clearly tracked people and let the previous alert clear.')).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Cancel trial' })).toHaveCount(0);
 });
