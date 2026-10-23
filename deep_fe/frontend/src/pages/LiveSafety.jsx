@@ -47,7 +47,7 @@ export default function LiveSafety() {
   if (busy || session.starting) message = 'Starting detection…';
   else if (paused) message = 'Detection paused';
   else if (session.armed && !isFresh) message = 'Waiting for fresh video…';
-  else if (session.armed && tracks.length < 2) message = 'Waiting for two people';
+  else if (session.armed && tracks.length < 2) message = tracks.length === 1 ? 'Only one person tracked' : 'Waiting for two people';
   else if (session.armed && current.tracking !== 'observed') message = 'Getting a clear view…';
   else if (detected) message = '⚠ Possible hit detected';
   else if (session.armed && current.state === 'candidate') message = 'Checking movement…';
@@ -93,7 +93,7 @@ export default function LiveSafety() {
         {!session.camera && <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-zinc-500">{busy || session.starting ? 'Opening camera…' : 'Start the camera to track both people.'}</div>}
       </div></div>
       <div role="status" aria-live="polite" className={`flex flex-wrap items-center justify-between gap-2 border-t p-4 ${detected ? 'border-red-900 bg-red-950/60 text-red-200' : 'border-zinc-800 text-zinc-300'}`}>
-        <div><p className="font-semibold">{message}</p>{paused && <p className="mt-1 text-xs text-zinc-400">{current?.reason?.replaceAll('re-arm', 'resume detection') || 'Click Resume detection to continue.'}</p>}{session.armed && isFresh && current?.tracking !== 'observed' && <p className="mt-1 text-xs text-zinc-400">{current?.reason}</p>}</div>
+        <div><p className="font-semibold">{message}</p>{paused && <p className="mt-1 text-xs text-zinc-400">{current?.reason?.replaceAll('re-arm', 'resume detection') || 'Click Resume detection to continue.'}</p>}{session.armed && isFresh && tracks.length < 2 ? <p className="mt-1 text-xs text-zinc-400">Move farther back so both people fit in the camera frame. Keep both shoulders, elbows and wrists visible.</p> : session.armed && isFresh && current?.tracking !== 'observed' && <p className="mt-1 text-xs text-zinc-400">{current?.reason}</p>}</div>
         <span className="text-xs text-zinc-400">{tracks.length} {tracks.length === 1 ? 'person' : 'people'} tracked{session.armed && isFresh ? ` · ${session.inferenceFps.toFixed(0)} FPS` : ''}</span>
       </div>
     </section>

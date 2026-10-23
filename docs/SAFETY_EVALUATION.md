@@ -1,5 +1,7 @@
 # Current simplified live view verification
 
+Updated 2026-10-23: the webcam framing fix removes an unintended visible-hip requirement from the upper-body trajectory baseline and anchors track matching to visible shoulders rather than inferred off-screen hips. Arms must still be observed; hidden wrists cannot form a strike. The baseline is now `directed-wrist-trajectory-v2-upper-body`; the optional STGCN gate has a new version identity as well. The live UI distinguishes one tracked person and explains the framing needed. Verification: 77 backend safety tests, three targeted Chromium checks (zero/one/two-person live UI and no calling), and a successful production build. A live webcam check returned two poses at 10 FPS, with arm occlusion still reported; stable real-world action accuracy remains unmeasured. This path uses the local Mac detector and requires no AWS instance.
+
 Updated 2026-10-22 for the owner's revised scope: a live video feed, two-person tracking and possible-hit detection. History, phone/clip controls and the separate Arm step are removed from the current interface.
 
 - 72 backend tests pass, including new live-only session guards and two synthetic hit episodes without incident storage or the incident cooldown.

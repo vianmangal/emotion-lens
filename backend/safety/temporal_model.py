@@ -1,13 +1,14 @@
 """Interchangeable temporal classifiers. No expression model is imported here."""
 import numpy as np
 from backend.safety.event_policy import Evidence
+from backend.safety.tracking import UPPER_BODY
 
 # The upstream text file uses one-based line numbers: A50/A51 -> indices 49/50.
 STRIKING_CLASSES = {49: 'punching/slapping other person', 50: 'kicking other person'}
 
 
 class TrajectoryBaseline:
-    version = 'directed-wrist-trajectory-v1 (experimental)'
+    version = 'directed-wrist-trajectory-v2-upper-body (experimental)'
     window_seconds = 1.2
 
     def classify(self, history, shape):
@@ -16,7 +17,7 @@ class TrajectoryBaseline:
         current = history[-1][1]
         if len(current) < 2:
             return Evidence(False, people=len(current), reasons=('Two visible participants required',))
-        if any(p['points'][[5, 6, 7, 8, 9, 10, 11, 12], 2].min() < .55 for _, tracks in history for p in tracks):
+        if any(p['points'][UPPER_BODY, 2].min() < .55 for _, tracks in history for p in tracks):
             return Evidence(False, people=len(current), reasons=('Temporal window contains occluded limbs',))
         # Inspect a short trailing trajectory, after a longer stable observation window.
         old = min(history, key=lambda h: abs(h[0] - (history[-1][0] - .35)))
@@ -34,9 +35,9 @@ class TrajectoryBaseline:
                 if target['id'] == source['id']:
                     continue
                 q = target['points']
-                if min(p[[5, 6, 7, 8, 9, 10], 2].min(), q[[5, 6, 11, 12], 2].min()) < .55:
+                if min(p[UPPER_BODY, 2].min(), q[[5, 6], 2].min()) < .55:
                     return Evidence(False, people=len(current), reasons=('Relevant limbs occluded',))
-                center = np.mean(q[[5, 6, 11, 12], :2], axis=0)
+                center = np.mean(q[[5, 6], :2], axis=0)
                 scale = max(float(np.linalg.norm(p[5, :2] - p[6, :2])), .06)
                 for wrist, elbow, shoulder in [(9, 7, 5), (10, 8, 6)]:
                     v = (p[wrist, :2] - p[shoulder, :2]) - (prev[wrist, :2] - prev[shoulder, :2])
@@ -54,7 +55,7 @@ class TrajectoryBaseline:
 
 class STGCNTemporal:
     """Official MMAction2 COCO-17 NTU60 pipeline. Optional isolated model environment."""
-    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v3'
+    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v4-upper-body-gate'
     window_seconds = 3.3
 
     def __init__(self, config, checkpoint):

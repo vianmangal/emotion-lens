@@ -42,6 +42,29 @@ def test_tracker_identity_loss_and_checksum_fail_closed(tmp_path):
     with pytest.raises(ValueError):verify_artifact(str(artifact),'0'*64)
 
 
+def test_seated_upper_body_does_not_require_visible_hips():
+    sequence = history(True)
+    for _, tracks in sequence:
+        for track in tracks:
+            track['points'][[11, 12], 2] = 0
+            track['points'][[11, 12], :2] = [3., -2.]
+    evidence = TrajectoryBaseline().classify(sequence, (480, 640, 3))
+    assert evidence.ready and evidence.directed and evidence.track_ids == (1, 2)
+    # Removing the hip requirement must not waive observed arm landmarks.
+    sequence[-4][1][0]['points'][10, 2] = .1
+    assert not TrajectoryBaseline().classify(sequence, (480, 640, 3)).ready
+
+
+def test_hidden_hip_estimates_cannot_move_track_identity():
+    tracker = Tracker()
+    points = history()[-1][1][0]['points'].copy()
+    points[[11, 12], 2] = 0
+    first, _ = tracker.update([points])
+    points[[11, 12], :2] = [8., -8.]
+    second, changed = tracker.update([points])
+    assert not changed and second[0]['id'] == first[0]['id']
+
+
 @pytest.mark.parametrize('top,accepted', [(49, True), (50, True), (51, False), (53, False), (54, False)])
 def test_ntu60_upstream_class_indices_keep_punch_and_exclude_push(top, accepted):
     from types import SimpleNamespace
@@ -88,6 +111,10 @@ def test_pose_occlusion_clears_window_before_visibility_recovers():
         landmarks = [SimpleNamespace(x=.3, y=.4, visibility=.99, presence=.99) for _ in range(33)]
         for coco, mp in enumerate(COCO_FROM_MP):
             landmarks[mp].x, landmarks[mp].y = track['points'][coco, :2]
+        # A seated webcam user can have fully observed arms but off-screen hips.
+        for index in (23, 24):
+            landmarks[index].y = 1.5
+            landmarks[index].visibility = .1
         poses.append(landmarks)
     detector.pose = SimpleNamespace(detect=lambda _: SimpleNamespace(pose_landmarks=poses))
     frame = np.zeros((48,64,3), np.uint8)

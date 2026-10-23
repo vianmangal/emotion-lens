@@ -92,6 +92,18 @@ test('two distinct people are labeled and possible hitting is displayed on the l
   await expect(page.getByText('Possible hit detected', { exact: false })).toHaveCount(0);
 });
 
+test('a single pose explains framing instead of implying two people are tracked', async ({ page }) => {
+  const { setEvidence } = await setup(page);
+  setEvidence({ state: 'warming_up', people: 1, tracks: pair.slice(0, 1), tracking: 'insufficient_evidence',
+    reason: 'Keep both shoulders, elbows and wrists visible; move farther from the camera' });
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await expect(page.getByRole('status')).toContainText('Only one person tracked');
+  await expect(page.getByRole('status')).toContainText('Move farther back so both people fit in the camera frame');
+  await expect(page.locator('svg rect[data-track-id]')).toHaveCount(1);
+  await expect(page.getByRole('status')).not.toContainText('No hitting motion detected');
+  await expect(page.getByRole('status')).not.toContainText('Possible hit detected');
+});
+
 test('camera start, stop and view cleanup work by keyboard', async ({ page }) => {
   const { calls, frames } = await setup(page);
   await tabTo(page, page.getByRole('combobox', { name: 'Camera', exact: true }));
