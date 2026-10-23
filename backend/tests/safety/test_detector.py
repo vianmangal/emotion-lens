@@ -27,7 +27,7 @@ def test_real_trajectory_baseline_and_visibility_abstention():
     assert positive.directed and positive.score >= .75
     assert not baseline.classify(history(),(480,640,3)).directed
     assert not baseline.classify(history(True,1),(480,640,3)).ready
-    assert not baseline.classify(history(True,visible=False),(480,640,3)).ready
+    assert not baseline.classify(history(True,visible=False),(480,640,3)).directed
     assert not baseline.classify(history()[:3],(480,640,3)).ready
 
 
@@ -52,7 +52,7 @@ def test_seated_upper_body_does_not_require_visible_hips():
     assert evidence.ready and evidence.directed and evidence.track_ids == (1, 2)
     # Removing the hip requirement must not waive observed arm landmarks.
     sequence[-4][1][0]['points'][10, 2] = .1
-    assert not TrajectoryBaseline().classify(sequence, (480, 640, 3)).ready
+    assert not TrajectoryBaseline().classify(sequence, (480, 640, 3)).directed
 
 
 def test_hidden_hip_estimates_cannot_move_track_identity():
@@ -91,10 +91,10 @@ def test_inferred_wrist_after_occlusion_cannot_form_a_strike():
     # The earlier wrist observation is unreliable, although the current arm is visible.
     sequence[-4][1][0]['points'][10, 2] = .1
     evidence = TrajectoryBaseline().classify(sequence, (480, 640, 3))
-    assert not evidence.ready and 'occluded' in evidence.reasons[0]
+    assert not evidence.directed
 
 
-def test_pose_occlusion_clears_window_before_visibility_recovers():
+def test_arm_occlusion_preserves_other_arm_but_shoulder_loss_clears_history():
     from collections import deque
     from types import SimpleNamespace
     from backend.safety.detector import Detector
@@ -122,9 +122,14 @@ def test_pose_occlusion_clears_window_before_visibility_recovers():
     assert len(detector.history) >= 8
     poses[0][15].visibility = .1
     evidence, _ = detector.process(1., frame)
+    assert evidence.ready and not evidence.directed and detector.history
+    # Losing a body anchor still invalidates the entire shared window.
+    poses[0][11].visibility = .1
+    evidence, _ = detector.process(1.1, frame)
     assert not evidence.ready and not detector.history
     poses[0][15].visibility = .99
-    evidence, _ = detector.process(1.1, frame)
+    poses[0][11].visibility = .99
+    evidence, _ = detector.process(1.2, frame)
     assert not evidence.ready and len(detector.history) == 1
 
 

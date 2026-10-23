@@ -3,7 +3,7 @@ import hashlib
 from pathlib import Path
 import numpy as np
 import cv2
-from backend.safety.tracking import Tracker, COCO_FROM_MP, UPPER_BODY
+from backend.safety.tracking import Tracker, COCO_FROM_MP
 from backend.safety.temporal_model import TrajectoryBaseline, STGCNTemporal
 from backend.safety.event_policy import Evidence
 
@@ -66,9 +66,9 @@ class Detector:
             points[outside, 2] = 0  # Inferred off-screen limbs cannot satisfy visibility.
         tracks, changed = self.tracker.update(poses)
         overlays = [{'id': p['id'], 'box': p['box'], 'points': p['points'].tolist()} for p in tracks]
-        if any(p['points'][UPPER_BODY, 2].min() < .55 for p in tracks):
+        if any(p['points'][[5, 6], 2].min() < .55 for p in tracks):
             self.history.clear()
-            return Evidence(False, people=len(tracks), reasons=('Keep both shoulders, elbows and wrists visible; move farther from the camera',)), overlays
+            return Evidence(False, people=len(tracks), reasons=('Keep both shoulders visible; move farther from the camera',)), overlays
         if changed or (self.history and (t - self.history[-1][0] > 1 or t <= self.history[-1][0])):
             self.history.clear()
         self.history.append((t, tracks))

@@ -1,15 +1,26 @@
 """Interchangeable temporal classifiers. No expression model is imported here."""
 import numpy as np
 from backend.safety.event_policy import Evidence
-from backend.safety.tracking import UPPER_BODY
 
 # The upstream text file uses one-based line numbers: A50/A51 -> indices 49/50.
 STRIKING_CLASSES = {49: 'punching/slapping other person', 50: 'kicking other person'}
 
 
 class TrajectoryBaseline:
-    version = 'directed-wrist-trajectory-v2-upper-body (experimental)'
+    version = 'directed-wrist-trajectory-v3-arm-windows (experimental)'
     window_seconds = 1.2
+    motion_memory_seconds = .45
+
+    @staticmethod
+    def observed(history, track_id, joints):
+        """Contiguous visible suffix; a missing joint resets only this arm."""
+        samples = []
+        for t, tracks in reversed(history):
+            track = next((p for p in tracks if p['id'] == track_id), None)
+            if track is None or np.any(track['points'][joints, 2] < .55):
+                break
+            samples.append((t, track['points']))
+        return list(reversed(samples))
 
     def classify(self, history, shape):
         if len(history) < 8 or history[-1][0] - history[0][0] < .7:
@@ -17,45 +28,80 @@ class TrajectoryBaseline:
         current = history[-1][1]
         if len(current) < 2:
             return Evidence(False, people=len(current), reasons=('Two visible participants required',))
-        if any(p['points'][UPPER_BODY, 2].min() < .55 for _, tracks in history for p in tracks):
-            return Evidence(False, people=len(current), reasons=('Temporal window contains occluded limbs',))
-        # Inspect a short trailing trajectory, after a longer stable observation window.
-        old = min(history, key=lambda h: abs(h[0] - (history[-1][0] - .35)))
-        dt = history[-1][0] - old[0]
-        if dt < .15:
-            return Evidence(False, reasons=('Insufficient motion sampling',))
+        now = history[-1][0]
+        # Each arm has its own visibility window. A target's hidden wrist must
+        # not erase an observed strike from the other person's visible arm.
         score = 0.
         pair = ()
+        observable = False
+        pixels = np.array([shape[1], shape[0]], dtype=np.float32)
         for source in current:
-            previous = next((p for p in old[1] if p['id'] == source['id']), None)
-            if previous is None:
-                return Evidence(False, reasons=('Track identity changed',))
-            p, prev = source['points'], previous['points']
             for target in current:
                 if target['id'] == source['id']:
                     continue
-                q = target['points']
-                if min(p[UPPER_BODY, 2].min(), q[[5, 6], 2].min()) < .55:
-                    return Evidence(False, people=len(current), reasons=('Relevant limbs occluded',))
-                center = np.mean(q[[5, 6], :2], axis=0)
-                scale = max(float(np.linalg.norm(p[5, :2] - p[6, :2])), .06)
                 for wrist, elbow, shoulder in [(9, 7, 5), (10, 8, 6)]:
-                    v = (p[wrist, :2] - p[shoulder, :2]) - (prev[wrist, :2] - prev[shoulder, :2])
-                    toward = center - prev[wrist, :2]
-                    alignment = float(np.dot(v, toward) / max(np.linalg.norm(v) * np.linalg.norm(toward), 1e-6))
-                    speed = float(np.linalg.norm(v)) / (scale * dt)
-                    extension = float(np.linalg.norm(p[wrist, :2] - p[shoulder, :2])) / scale
-                    proximity = float(np.linalg.norm(p[wrist, :2] - center)) / scale
-                    if alignment > .8 and speed > 2 and extension > .9 and proximity < 2.5:
-                        candidate_score = min(.99, .75 + (speed - 2) * .05)
-                        if candidate_score > score:
-                            score, pair = candidate_score, (source['id'], target['id'])
-        return Evidence(True, score, score >= .75, len(current), ('Experimental trajectory baseline; review footage',), pair)
+                    arm = self.observed(history, source['id'], [5, 6, elbow, wrist])
+                    body = self.observed(history, target['id'], [5, 6])
+                    if not arm or not body:
+                        continue
+                    since = max(arm[0][0], body[0][0])
+                    arm = [sample for sample in arm if sample[0] >= since]
+                    body = [sample for sample in body if sample[0] >= since]
+                    # Require half a second of observed landmarks after this
+                    # arm recovers; an inferred wrist jump cannot be a strike.
+                    if len(arm) < 5 or now - since < .5 - 1e-6:
+                        continue
+                    observable = True
+                    # Three fresh observations are needed for a trajectory.
+                    # Never bridge an occluded moving arm or infer its motion.
+                    for start in range(len(arm) - 2):
+                        if now - arm[start][0] > .9:
+                            continue
+                        t0, prev = arm[start]
+                        for end in range(start + 2, len(arm)):
+                            te, p = arm[end]
+                            dt = te - t0
+                            if dt < .15 or dt > .45 or now - te > self.motion_memory_seconds:
+                                continue
+                            q = body[end][1]
+                            center = np.mean(q[[5, 6], :2], axis=0) * pixels
+                            scale = max(float(np.linalg.norm((p[5, :2] - p[6, :2]) * pixels)), .06 * shape[1])
+                            # Remove source body translation; walking toward a
+                            # stationary hand is not an arm strike.
+                            v = ((p[wrist, :2] - p[shoulder, :2]) -
+                                 (prev[wrist, :2] - prev[shoulder, :2])) * pixels
+                            toward = center - prev[wrist, :2] * pixels
+                            alignment = float(np.dot(v, toward) / max(np.linalg.norm(v) * np.linalg.norm(toward), 1e-6))
+                            speed = float(np.linalg.norm(v)) / (scale * dt)
+                            extension = float(np.linalg.norm((p[wrist, :2] - p[shoulder, :2]) * pixels)) / scale
+                            proximity = float(np.linalg.norm(p[wrist, :2] * pixels - center)) / scale
+                            approach = (float(np.linalg.norm(toward)) -
+                                        float(np.linalg.norm(p[wrist, :2] * pixels - center))) / scale
+                            if alignment > .8 and speed > 2 and extension > .9 and proximity < 2.5 and approach > .25:
+                                # Retaining a recent trajectory must not turn a
+                                # single bad landmark into a sustained alert.
+                                # Require progress in two separately observed
+                                # intervals, not two still frames plus a jump.
+                                direction = toward / max(np.linalg.norm(toward), 1e-6)
+                                progress = 0
+                                for k in range(start + 1, end + 1):
+                                    before, after = arm[k - 1][1], arm[k][1]
+                                    step = ((after[wrist, :2] - after[shoulder, :2]) -
+                                            (before[wrist, :2] - before[shoulder, :2])) * pixels
+                                    progress += int(float(np.dot(step, direction)) / scale > .06)
+                                if progress < 2:
+                                    continue
+                                candidate_score = min(.99, .75 + (speed - 2) * .05)
+                                if candidate_score > score:
+                                    score, pair = candidate_score, (source['id'], target['id'])
+        reason = ('Experimental trajectory baseline; review footage' if observable else
+                  'Keep one moving arm fully visible, including elbow and wrist, and both people’s shoulders in frame')
+        return Evidence(observable, score, score >= .75, len(current), (reason,), pair)
 
 
 class STGCNTemporal:
     """Official MMAction2 COCO-17 NTU60 pipeline. Optional isolated model environment."""
-    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v4-upper-body-gate'
+    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v5-arm-windows'
     window_seconds = 3.3
 
     def __init__(self, config, checkpoint):

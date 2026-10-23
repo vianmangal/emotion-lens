@@ -28,7 +28,7 @@ Open **http://127.0.0.1:5173**. Use the existing servers if already running.
 
 Rehearse with the actual participants and lighting before presenting. The detector is experimental and can miss actions or flag ordinary gestures. A single person shadowboxing is not a two-person interaction. There is no simulated detection trigger.
 
-If the page shows **Only one person tracked**, move the camera farther back and keep both people away from the side edges. If it shows **Getting a clear view**, uncover both sets of shoulders, elbows and wrists; a laptop or table can hide the arms even when both faces are visible. The trajectory baseline supports seated upper-body framing without requiring visible hips. A face-only track does not make a motion trial ready.
+If the page shows **Only one person tracked**, move the camera farther back and keep both people away from the side edges. If it shows **Getting a clear view**, keep both people's shoulders and the moving arm's elbow and wrist visible; a laptop or table can hide the arm even when both faces are visible. A hidden unused arm does not block an otherwise observed motion, but motion by a hidden wrist cannot be detected. The trajectory baseline supports seated upper-body framing without requiring visible hips. A face-only track does not make a motion trial ready.
 
 Live-only mode does not save incidents or video clips and does not schedule calls. The [verification report](SAFETY_EVALUATION.md) distinguishes generated/mock checks from unmeasured human accuracy.
 
