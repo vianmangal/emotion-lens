@@ -12,7 +12,7 @@ from backend.safety.frame_buffer import FrameBuffer, decode_frame
 from backend.safety.recording import RecordingStore
 from backend.safety.models import Incident, new_id
 from backend.safety.actions.dispatcher import Dispatcher
-from backend.safety.actions.elevenlabs import configured, masked_recipient
+from backend.safety.actions.provider import configured, masked_recipient, provider_label
 from backend.safety.retention import cleanup
 
 
@@ -117,7 +117,7 @@ class Runtime:
                 'metadata_retention_days': self.config.SAFETY_METADATA_RETENTION_DAYS, 'phone_configured': configured(self.config),
                 'event_policy': self.config.event_policy_options(),
                 'threshold_version': threshold_version(self.config.event_policy_options()),
-                'recipient': masked_recipient(self.config), 'real_auto_calls_available': False,
+                'recipient': masked_recipient(self.config), 'phone_provider': provider_label(self.config), 'real_auto_calls_available': False,
                 'real_test_available': configured(self.config) and self.persistence_ready, 'call_grace_seconds': self.config.SAFETY_CALL_GRACE_SECONDS}
 
     async def create(self, source, live_only=False):

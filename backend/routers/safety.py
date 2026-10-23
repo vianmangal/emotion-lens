@@ -10,7 +10,7 @@ from sqlalchemy import select, func
 from backend.safety.schemas import SessionOptions, ArmOptions, FrameMessage, Review, PhoneTest
 from backend.safety.frame_buffer import MAX_MESSAGE
 from backend.safety.models import Incident, Action
-from backend.safety.actions.elevenlabs import configured
+from backend.safety.actions.provider import configured
 
 router = APIRouter(prefix='/safety', tags=['safety'])
 

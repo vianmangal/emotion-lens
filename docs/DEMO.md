@@ -30,6 +30,8 @@ Rehearse with the actual participants and lighting before presenting. The detect
 
 Live-only mode does not save incidents or video clips and does not schedule calls. The [verification report](SAFETY_EVALUATION.md) distinguishes generated/mock checks from unmeasured human accuracy.
 
+For a separately requested phone-notification demo, see [Sarvam setup](SARVAM_SETUP.md). Calling is independent of the live accuracy trials.
+
 ## Measure detection with the live camera
 
 Open **Test detection accuracy** below the feed. The panel is optional and starts with no accuracy results. Keep the detector settings unchanged for the whole test.

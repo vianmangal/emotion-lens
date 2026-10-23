@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,9 +20,17 @@ class Settings(BaseSettings):
     SAFETY_STGCN_SHA256: str = ''
     SAFETY_STGCN_CONFIG: str = ''
     SAFETY_CALL_MODE: str = 'off'
+    SAFETY_CALL_PROVIDER: Literal['elevenlabs', 'sarvam'] = 'elevenlabs'
     ELEVENLABS_API_KEY: SecretStr = SecretStr('')
     ELEVENLABS_AGENT_ID: str = ''
     ELEVENLABS_AGENT_PHONE_NUMBER_ID: str = ''
+    SARVAM_API_KEY: SecretStr = SecretStr('')
+    SARVAM_ORG_ID: str = ''
+    SARVAM_WORKSPACE_ID: str = ''
+    SARVAM_AGENT_ID: str = ''
+    SARVAM_AGENT_VERSION: int = Field(1, ge=1)
+    SARVAM_CONNECTION_ID: str = ''
+    SARVAM_AGENT_PHONE_NUMBER: SecretStr = SecretStr('')
     SAFETY_ALERT_TO_NUMBER: SecretStr = SecretStr('')
     SAFETY_CALL_GRACE_SECONDS: float = Field(10, ge=1, le=60)
     SAFETY_CALL_COOLDOWN_SECONDS: float = Field(300, ge=1)
