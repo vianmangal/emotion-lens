@@ -1,3 +1,4 @@
+from itertools import product
 import numpy as np
 
 # COCO 17 ordering from MediaPipe 33 landmarks, normalized image coordinates.
@@ -17,7 +18,7 @@ def tracking_center(points):
 
 
 class Tracker:
-    """Conservative session-local centroid assignment; ambiguous matches reset history."""
+    """Global session-local assignment; ambiguous matches receive new identities."""
     def __init__(self):
         self.previous = {}
         self.next_id = 1
@@ -26,14 +27,31 @@ class Tracker:
         self.previous.clear()
 
     def update(self, poses):
-        remaining = set(self.previous)
+        centers = [tracking_center(points) for points in poses]
+        ids = list(self.previous)
+        # MediaPipe returns at most four poses, in no guaranteed order. Match
+        # all observations together so a distant first pose cannot steal the
+        # identity belonging to a later, much closer observation.
+        distances = {(i, k): float(np.linalg.norm(center - self.previous[k]))
+                     for i, center in enumerate(centers) for k in ids}
+        choices = [[None] + [k for k in ids if distances[i, k] < .25]
+                   for i in range(len(centers))]
+        assignments = []
+        for assignment in product(*choices):
+            matched = [k for k in assignment if k is not None]
+            if len(matched) != len(set(matched)):
+                continue
+            cost = sum(distances[i, k] for i, k in enumerate(assignment) if k is not None)
+            assignments.append((len(matched), cost, assignment))
+        assignments.sort(key=lambda item: (-item[0], item[1]))
+        count, cost, best = assignments[0]
+        alternatives = [a for n, c, a in assignments[1:] if n == count and c - cost < .06]
+        remaining = set(ids)
         tracks, discontinuity = [], False
-        for points in poses:
-            center = tracking_center(points)
-            matches = sorted((float(np.linalg.norm(center - self.previous[k])), k) for k in remaining)
-            ambiguous = len(matches) > 1 and matches[1][0] - matches[0][0] < .06
-            if matches and matches[0][0] < .25 and not ambiguous:
-                track_id = matches[0][1]
+        for i, points in enumerate(poses):
+            track_id = best[i]
+            ambiguous = any(a[i] != track_id for a in alternatives)
+            if track_id is not None and not ambiguous:
                 remaining.remove(track_id)
             else:
                 track_id = self.next_id

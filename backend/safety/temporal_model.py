@@ -7,7 +7,7 @@ STRIKING_CLASSES = {49: 'punching/slapping other person', 50: 'kicking other per
 
 
 class TrajectoryBaseline:
-    version = 'directed-wrist-trajectory-v3-arm-windows (experimental)'
+    version = 'directed-wrist-trajectory-v4-independent-tracks (experimental)'
     window_seconds = 1.2
     motion_memory_seconds = .45
 
@@ -47,9 +47,10 @@ class TrajectoryBaseline:
                     since = max(arm[0][0], body[0][0])
                     arm = [sample for sample in arm if sample[0] >= since]
                     body = [sample for sample in body if sample[0] >= since]
-                    # Require half a second of observed landmarks after this
-                    # arm recovers; an inferred wrist jump cannot be a strike.
-                    if len(arm) < 5 or now - since < .5 - 1e-6:
+                    # A recovered arm needs three fresh observed positions.
+                    # No arc may cross its visibility gap. Two independent
+                    # progress intervals below reject a single wrist jump.
+                    if len(arm) < 3 or now - since < .2 - 1e-6:
                         continue
                     observable = True
                     # Three fresh observations are needed for a trajectory.
@@ -101,7 +102,7 @@ class TrajectoryBaseline:
 
 class STGCNTemporal:
     """Official MMAction2 COCO-17 NTU60 pipeline. Optional isolated model environment."""
-    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v5-arm-windows'
+    version = 'mmaction2-stgcn-ntu60-coco17-experimental-v6-independent-tracks'
     window_seconds = 3.3
 
     def __init__(self, config, checkpoint):

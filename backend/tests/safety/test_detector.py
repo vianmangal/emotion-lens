@@ -51,7 +51,7 @@ def test_seated_upper_body_does_not_require_visible_hips():
     evidence = TrajectoryBaseline().classify(sequence, (480, 640, 3))
     assert evidence.ready and evidence.directed and evidence.track_ids == (1, 2)
     # Removing the hip requirement must not waive observed arm landmarks.
-    sequence[-4][1][0]['points'][10, 2] = .1
+    sequence[-2][1][0]['points'][10, 2] = .1
     assert not TrajectoryBaseline().classify(sequence, (480, 640, 3)).directed
 
 
@@ -89,12 +89,12 @@ def test_ntu60_upstream_class_indices_keep_punch_and_exclude_push(top, accepted)
 def test_inferred_wrist_after_occlusion_cannot_form_a_strike():
     sequence = history(True)
     # The earlier wrist observation is unreliable, although the current arm is visible.
-    sequence[-4][1][0]['points'][10, 2] = .1
+    sequence[-2][1][0]['points'][10, 2] = .1
     evidence = TrajectoryBaseline().classify(sequence, (480, 640, 3))
     assert not evidence.directed
 
 
-def test_arm_occlusion_preserves_other_arm_but_shoulder_loss_clears_history():
+def test_occlusion_invalidates_only_the_affected_participant_window():
     from collections import deque
     from types import SimpleNamespace
     from backend.safety.detector import Detector
@@ -123,14 +123,47 @@ def test_arm_occlusion_preserves_other_arm_but_shoulder_loss_clears_history():
     poses[0][15].visibility = .1
     evidence, _ = detector.process(1., frame)
     assert evidence.ready and not evidence.directed and detector.history
-    # Losing a body anchor still invalidates the entire shared window.
+    # Losing a shoulder invalidates both interactions with that participant,
+    # while retaining observations for any other visible pair.
     poses[0][11].visibility = .1
     evidence, _ = detector.process(1.1, frame)
-    assert not evidence.ready and not detector.history
+    assert not evidence.ready and detector.history
     poses[0][15].visibility = .99
     poses[0][11].visibility = .99
     evidence, _ = detector.process(1.2, frame)
-    assert not evidence.ready and len(detector.history) == 1
+    assert not evidence.ready and len(detector.history) > 1
+    detector.process(1.3, frame)
+    evidence, _ = detector.process(1.4, frame)
+    assert evidence.ready and not evidence.directed
+
+
+def test_returning_pose_cannot_steal_a_closer_persons_identity():
+    from backend.safety.tracking import tracking_center
+    p = history()[-1][1][0]['points'].copy()
+    p[:, 0] += .25  # Shoulder center .55.
+    tracker = Tracker()
+    original, _ = tracker.update([p])
+    returning = p.copy(); returning[:, 0] -= .249
+    same_person = p.copy(); same_person[:, 0] += .002
+    tracks, changed = tracker.update([returning, same_person])
+    assert changed  # A genuinely new track still has a new identity.
+    retained = next(track for track in tracks if track['id'] == original[0]['id'])
+    assert np.allclose(tracking_center(retained['points']), tracking_center(same_person))
+
+
+def test_global_tracking_is_independent_of_pose_order_and_rejects_real_ambiguity():
+    from backend.safety.tracking import tracking_center
+    a = history()[-1][1][0]['points'].copy()
+    b = a.copy(); b[:, 0] += .25
+    tracker = Tracker()
+    first, _ = tracker.update([a, b])
+    second, changed = tracker.update([b, a])
+    assert not changed
+    assert all(np.allclose(tracking_center(x['points']), tracking_center(y['points']))
+               for x, y in zip(first, second))
+    midpoint = (a + b) / 2
+    third, changed = tracker.update([midpoint.copy(), midpoint.copy()])
+    assert changed and not {track['id'] for track in first} & {track['id'] for track in third}
 
 
 def test_temporal_model_and_trajectory_gate_use_same_pair_with_bystanders():

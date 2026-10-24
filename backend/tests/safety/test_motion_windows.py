@@ -32,7 +32,7 @@ def sequence(kind='strike', hidden_unused=False):
         # current-vs-350-ms-old comparison loses the event before the policy
         # has accumulated its 300 ms candidate confirmation.
         outward = {10: [.49, .38], 11: [.60, .31]}
-        if kind in ('strike', 'hidden_strike') and i in outward:
+        if kind in ('strike', 'hidden_strike', 'pose_recovers', 'arm_recovers', 'shoulder_recovers', 'bystander_dropout', 'pose_dropout_during_strike') and i in outward:
             p[10, :2] = outward[i]
         if kind == 'wave' and i in (10, 11):
             p[10, :2] = [.38, .44 - (i - 9) * .12]
@@ -52,7 +52,18 @@ def sequence(kind='strike', hidden_unused=False):
         if hidden_unused:
             p[9, 2] = .05
             q[[9, 10], 2] = .05
-        result.append((i / 10, [p, q]))
+        if kind == 'arm_recovers' and i == 7:
+            p[10, 2] = .05
+        if kind == 'shoulder_recovers' and i == 7:
+            p[5, 2] = .05
+        actors = [p, q]
+        if (kind == 'pose_recovers' and i == 7) or (kind == 'pose_dropout_during_strike' and i == 10):
+            actors = [q]
+        if kind == 'bystander_dropout' and i in (7, 8, 10, 11):
+            r = points(); r[:, 0] += .55
+            r[5, 2] = .05
+            actors.append(r)
+        result.append((i / 10, actors))
     return result
 
 
@@ -67,13 +78,21 @@ def detector_for(poses):
     return detector
 
 
-def run(kind, hidden_unused=False):
+def run(kind, hidden_unused=False, mirrored=False, reverse_order=False):
     poses = []
     detector = detector_for(poses)
     policy = EventPolicy(cooldown=0); policy.arm()
     events, ends, scores = [], [], []
     frame = np.zeros((480, 640, 3), np.uint8)
     for t, actors in sequence(kind, hidden_unused):
+        if mirrored:
+            # Mirror the image and anatomical left/right joint labels together.
+            swap = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
+            actors = [p[swap].copy() for p in actors]
+            for p in actors:
+                p[:, 0] = 1 - p[:, 0]
+        if reverse_order:
+            actors = list(reversed(actors))
         poses.clear()
         for p in actors:
             landmarks = [SimpleNamespace(x=.3, y=.4, visibility=.95, presence=.95) for _ in range(33)]
@@ -85,7 +104,15 @@ def run(kind, hidden_unused=False):
         created, ended = policy.step(t, evidence)
         if created:
             events.append(t)
-            assert evidence.track_ids == (tracks[0]['id'], tracks[1]['id'])
+            # Check the actual source and target observations, even when a
+            # dropped source reappears with a newer ID than its target.
+            intended = actors[:2]
+            if reverse_order:
+                intended = list(reversed(actors[-2:]))
+            expected_ids = tuple(next(track['id'] for track in tracks
+                                      if np.allclose(np.asarray(track['points'])[[5, 6], :2], actor[[5, 6], :2]))
+                                 for actor in intended)
+            assert evidence.track_ids == expected_ids
         if ended:
             ends.append(t)
         scores.append(evidence.score)
@@ -103,4 +130,31 @@ def test_brief_strike_reaches_policy_even_after_hand_retracts(hidden_unused):
 @pytest.mark.parametrize('kind', ['still', 'wave', 'away', 'body_translation', 'hidden_strike', 'reappearance_jump', 'one_frame_glitch'])
 def test_non_strikes_and_unobserved_jumps_do_not_open_an_alert(kind):
     events, _, _ = run(kind)
+    assert events == []
+
+
+@pytest.mark.parametrize('mirrored', [False, True])
+@pytest.mark.parametrize('reverse_order', [False, True])
+@pytest.mark.parametrize('hidden_unused', [False, True])
+def test_alert_is_independent_of_image_side_and_pose_return_order(mirrored, reverse_order, hidden_unused):
+    events, _, _ = run('strike', hidden_unused, mirrored, reverse_order)
+    assert len(events) == 1
+
+
+@pytest.mark.parametrize('kind', ['wave', 'away', 'body_translation', 'hidden_strike', 'reappearance_jump', 'one_frame_glitch'])
+def test_mirrored_non_strikes_do_not_open_an_alert(kind):
+    events, _, _ = run(kind, mirrored=True, reverse_order=True)
+    assert events == []
+
+
+@pytest.mark.parametrize('kind', ['pose_recovers', 'arm_recovers', 'shoulder_recovers', 'bystander_dropout'])
+@pytest.mark.parametrize('mirrored', [False, True])
+def test_observed_strike_after_recovery_is_not_erased_by_unrelated_history(kind, mirrored):
+    events, _, _ = run(kind, mirrored=mirrored)
+    assert len(events) == 1
+
+
+@pytest.mark.parametrize('mirrored', [False, True])
+def test_trajectory_never_bridges_a_missing_pose_during_the_strike(mirrored):
+    events, _, _ = run('pose_dropout_during_strike', mirrored=mirrored)
     assert events == []

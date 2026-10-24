@@ -64,12 +64,12 @@ class Detector:
         for points in poses:
             outside = np.any((points[:, :2] < 0) | (points[:, :2] > 1), axis=1)
             points[outside, 2] = 0  # Inferred off-screen limbs cannot satisfy visibility.
-        tracks, changed = self.tracker.update(poses)
+        tracks, _ = self.tracker.update(poses)
         overlays = [{'id': p['id'], 'box': p['box'], 'points': p['points'].tolist()} for p in tracks]
-        if any(p['points'][[5, 6], 2].min() < .55 for p in tracks):
-            self.history.clear()
-            return Evidence(False, people=len(tracks), reasons=('Keep both shoulders visible; move farther from the camera',)), overlays
-        if changed or (self.history and (t - self.history[-1][0] > 1 or t <= self.history[-1][0])):
+        # Each classifier checks a participant's own contiguous observations.
+        # New/missing/occluded tracks must not erase another visible pair's
+        # history; new identities cannot reuse the old person's observations.
+        if self.history and (t - self.history[-1][0] > 1 or t <= self.history[-1][0]):
             self.history.clear()
         self.history.append((t, tracks))
         while self.history and t - self.history[0][0] > self.temporal.window_seconds:
