@@ -1,0 +1,122 @@
+{
+  "scope": "Production async transport smoke check using public training-source clips. This is regression evidence, not independent accuracy.",
+  "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+  "qualified": false,
+  "automatic_calls": false,
+  "results": [
+    {
+      "clip": "punch_1.avi",
+      "mirrored": false,
+      "source": "public video injected into live-only WebSocket at original speed; not a webcam trial",
+      "automatic_calls": false,
+      "clips_saved_by_app": false,
+      "sent_frames": 77,
+      "results": 77,
+      "new_events": 1,
+      "people_histogram": {
+        "2": 77
+      },
+      "states": {
+        "warming_up": 39,
+        "candidate": 8,
+        "alert_active": 30
+      },
+      "client_round_trip_median_ms": 50.890625,
+      "client_round_trip_p95_ms": 88.1451418042183,
+      "max_dropped_frames": 0,
+      "event_source_seconds": [
+        4.733333333333333
+      ]
+    },
+    {
+      "clip": "punch_6.avi",
+      "mirrored": false,
+      "source": "public video injected into live-only WebSocket at original speed; not a webcam trial",
+      "automatic_calls": false,
+      "clips_saved_by_app": false,
+      "sent_frames": 72,
+      "results": 72,
+      "new_events": 1,
+      "people_histogram": {
+        "2": 72
+      },
+      "states": {
+        "warming_up": 34,
+        "candidate": 3,
+        "alert_active": 35
+      },
+      "client_round_trip_median_ms": 47.15531250834465,
+      "client_round_trip_p95_ms": 89.63317033350468,
+      "max_dropped_frames": 0,
+      "event_source_seconds": [
+        3.7333333333333334
+      ]
+    },
+    {
+      "clip": "punch_6.avi",
+      "mirrored": true,
+      "source": "public video injected into live-only WebSocket at original speed; not a webcam trial",
+      "automatic_calls": false,
+      "clips_saved_by_app": false,
+      "sent_frames": 72,
+      "results": 72,
+      "new_events": 1,
+      "people_histogram": {
+        "2": 72
+      },
+      "states": {
+        "warming_up": 33,
+        "candidate": 4,
+        "alert_active": 35
+      },
+      "client_round_trip_median_ms": 45.93718798458576,
+      "client_round_trip_p95_ms": 65.98959564566613,
+      "max_dropped_frames": 0,
+      "event_source_seconds": [
+        3.7333333333333334
+      ]
+    },
+    {
+      "clip": "handclap_1.avi",
+      "mirrored": false,
+      "source": "public video injected into live-only WebSocket at original speed; not a webcam trial",
+      "automatic_calls": false,
+      "clips_saved_by_app": false,
+      "sent_frames": 44,
+      "results": 44,
+      "new_events": 0,
+      "people_histogram": {
+        "2": 44
+      },
+      "states": {
+        "warming_up": 34,
+        "monitoring": 10
+      },
+      "client_round_trip_median_ms": 43.37225000560284,
+      "client_round_trip_p95_ms": 76.82736424654725,
+      "max_dropped_frames": 0,
+      "event_source_seconds": []
+    },
+    {
+      "clip": "handshake_1.avi",
+      "mirrored": false,
+      "source": "public video injected into live-only WebSocket at original speed; not a webcam trial",
+      "automatic_calls": false,
+      "clips_saved_by_app": false,
+      "sent_frames": 51,
+      "results": 51,
+      "new_events": 0,
+      "people_histogram": {
+        "2": 51
+      },
+      "states": {
+        "warming_up": 33,
+        "monitoring": 18
+      },
+      "client_round_trip_median_ms": 44.54354101419449,
+      "client_round_trip_p95_ms": 70.91308350861073,
+      "max_dropped_frames": 0,
+      "event_source_seconds": []
+    }
+  ]
+}

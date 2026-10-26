@@ -9,7 +9,7 @@ async function tabTo(page, target) {
   await expect(target).toBeFocused();
 }
 
-async function setup(page) {
+async function setup(page, model = 'test-model') {
   const calls = [], frames = [], sockets = [];
   let evidence = { state: 'monitoring', people: 0, tracks: [], tracking: 'insufficient_evidence' };
   await page.addInitScript(() => {
@@ -25,7 +25,7 @@ async function setup(page) {
     calls.push({ path, method: request.method(), body: request.postDataJSON() });
     let body = {};
     if (path.endsWith('/bootstrap')) body = { capability: 'test-local-capability' };
-    else if (path.endsWith('/status')) body = { ready: true, qualified: false, model: 'test-model', event_policy: { entry: .75, exit: .35, entry_seconds: .3, quiet_seconds: 2, cooldown: 30 } };
+    else if (path.endsWith('/status')) body = { ready: true, qualified: false, model, event_policy: { entry: .75, exit: .35, entry_seconds: .3, quiet_seconds: 2, cooldown: 30 } };
     else if (path.endsWith('/sessions') && request.method() === 'POST') body = { id: 'test-session', capability: 'test-session-capability', live_only: true };
     else if (path.endsWith('/arm')) body = { state: 'warming_up', generation: 1 };
     await route.fulfill({ json: body });
@@ -268,4 +268,24 @@ test('stale or insufficient tracking cannot start an accuracy trial', async ({ p
   await panel.getByRole('button', { name: 'Start trial', exact: true }).click();
   await expect(panel.getByText('Wait for exactly two clearly tracked people and let the previous alert clear.')).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Cancel trial' })).toHaveCount(0);
+});
+
+test('visual trials show hold-still timing and score a delayed model response', async ({ page }) => {
+  test.setTimeout(30000);
+  const { calls, setEvidence } = await setup(page, 'learned-video-s3d-strike-v1 (experimental)');
+  setEvidence({ state: 'monitoring', people: 2, tracks: pair, tracking: 'observed' });
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await expect(page.getByRole('status')).toContainText('No hitting motion detected');
+  await page.getByRole('button', { name: 'Test detection accuracy' }).click();
+  const panel = page.getByRole('region', { name: 'Live accuracy test' });
+  await expect(panel.getByText(/4-second countdown/)).toBeVisible();
+  await panel.getByRole('button', { name: 'Start trial', exact: true }).click();
+  await expect(page.getByText(/^Get ready · 4$/)).toBeVisible();
+  await expect(page.getByText(/^MOVE NOW ·/)).toBeVisible({ timeout: 6000 });
+  await expect(page.getByText(/^Hold still ·/)).toBeVisible({ timeout: 8000 });
+  setEvidence({ state: 'alert_active', people: 2, tracks: pair, tracking: 'observed' });
+  await expect(panel.getByText('Detector result: alert observed')).toBeVisible({ timeout: 4000 });
+  await panel.getByRole('button', { name: 'Confirm action & save' }).click();
+  await expect(panel.getByTestId('hit-recall')).toHaveText('100%');
+  expect(calls.some(c => /\/events|\/phone/.test(c.path))).toBe(false);
 });

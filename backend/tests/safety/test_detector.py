@@ -166,6 +166,18 @@ def test_global_tracking_is_independent_of_pose_order_and_rejects_real_ambiguity
     assert changed and not {track['id'] for track in first} & {track['id'] for track in third}
 
 
+def test_person_box_tracking_uses_observed_box_anchors_without_fake_landmarks():
+    tracker = Tracker()
+    points = [np.zeros((17, 3), np.float32) for _ in range(2)]
+    boxes = [[.1, .1, .4, .9], [.6, .1, .9, .9]]
+    first, _ = tracker.update(points, boxes, [.9, .8])
+    second, changed = tracker.update(points, list(reversed(boxes)), [.8, .9])
+    assert not changed
+    assert [track['box'] for track in second] == boxes
+    assert [track['id'] for track in first] == [track['id'] for track in second]
+    assert all(track['body_observed'] and not track['points'].any() for track in second)
+
+
 def test_temporal_model_and_trajectory_gate_use_same_pair_with_bystanders():
     from types import SimpleNamespace
     from backend.safety.temporal_model import STGCNTemporal

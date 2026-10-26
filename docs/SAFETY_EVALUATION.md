@@ -1,5 +1,17 @@
 # Current simplified live view verification
 
+## Current visual model update — 2026-10-27
+
+The local runner now defaults to independent EfficientDet person boxes plus a learned S3D RGB action model. The older pose/trajectory and STGCN sections below describe earlier implementations. Missing arm landmarks no longer remove a visual-mode person track. The default model uses one bounded asynchronous inference job and requires a fresh, clear two-person video window.
+
+Full-pipeline source-excluded development replay on 30 public LIMU clips: 8/10 punch clips alerted in each orientation; false alerts on 2/20 ordinary clips in original view and 1/20 mirrored. These correlated development variants are not independent webcam qualification. Two punch clips remain missed in both views. See [the current model report](VISUAL_STRIKE_MODEL.md) and [per-clip evidence](VISUAL_DEVELOPMENT_CHECK.json) for training, source hashes, grouping and limits.
+
+A separate real-time localhost API/WebSocket check used public training-source footage at original speed through the production asynchronous model. Left-actor punch, right-actor punch and the mirrored right-actor clip each produced an alert. The selected handclap and handshake clips produced none. All 316 sent frames returned results, with zero dropped frames; median client round-trip time was 43–51 ms across those clips. This is a transport/regression check, not independent recognition accuracy or a webcam measurement. [Measured transport report](VISUAL_TRANSPORT_CHECK.json).
+
+127 versioned backend safety tests pass. The changed live trial scoring passed 10 frontend unit tests, five targeted Chromium checks and the production build. Calls, app recording and incident storage stayed off in the live-only checks. The detector remains unqualified; automatic real calls stay locked. The reports below are historical and do not override these current results.
+
+---
+
 Updated 2026-10-24: the owner reported that motions by the person on the right side of the video were often missed. Live observation showed two-person tracking and alert display at 10 FPS, but an initial timed trial had only 38% clear tracking. That trial was discarded because the intended action was not confirmed. Temporary local numeric tracing then exposed a concrete identity-assignment bug: following a pose dropout, the greedy matcher could give an existing identity to a distant first observation even when a later observation was much closer. A dropout on either side also erased every participant's motion history.
 
 The current baseline is `directed-wrist-trajectory-v4-independent-tracks`. Tracking now solves the small, complete assignment together, rejects genuinely ambiguous assignments, and is independent of pose return order. Visibility and identity breaks invalidate only the affected participant's contiguous observation window. After recovery, an arm needs three fresh positions spanning at least 200 ms, with two separately observed progress intervals; no trajectory may bridge its missing observations. Timestamp gaps and dropped-frame guards still reset monitoring. The optional STGCN adapter retains its additional three-second visibility requirement and has a new version identity.

@@ -97,7 +97,7 @@ export default function LiveSafety() {
         <span className="text-xs text-zinc-400">{tracks.length} {tracks.length === 1 ? 'person' : 'people'} tracked{session.armed && isFresh ? ` · ${session.inferenceFps.toFixed(0)} FPS` : ''}</span>
       </div>
     </section>
-    <p className="text-xs text-zinc-500">Keep both people’s upper bodies and arms visible in the frame.</p>
+    <p className="text-xs text-zinc-500">Keep both people’s upper bodies and arms visible. Allow a few seconds of clear video for detection to warm up.</p>
     <LiveAccuracyTest armed={session.armed} result={current} status={status} onCue={setTestCue} />
   </div>;
 }

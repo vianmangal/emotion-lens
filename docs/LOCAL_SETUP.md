@@ -7,14 +7,16 @@ Test environment, 2026-10-21: Apple M4, 16 GiB RAM, macOS 27.0.1 arm64, Python 3
 Run commands from the repository root. Keep the existing `.venv` and local data/model files intact; the safety stack has a separate environment.
 
 ```bash
-python3.11 -m venv .venv-safety
-source .venv-safety/bin/activate
-pip install -r backend/requirements-safety.txt
-python scripts/download_models.py
+python3.11 -m venv .venv-visual
+source .venv-visual/bin/activate
+pip install -r backend/requirements-visual.txt
+python scripts/download_models.py --visual
 python scripts/run_local.py
 ```
 
-The explicit downloader writes below `data/models/`, checks exact sizes and SHA256, and prints nonsecret model configuration. Startup never downloads anything. Without configured artifacts the API/preview/history/dry-run tests remain usable and monitoring reports unavailable.
+The default is the experimental learned RGB detector with independent person boxes. On the owner's Mac, `.venv-model` already has these dependencies and can run `.venv-model/bin/python scripts/run_local.py`. The explicit downloader writes below `data/models/`, checks SHA256, and prints nonsecret model configuration. Startup never downloads anything. Missing dependencies or artifacts report detection unavailable. See [the visual model report](VISUAL_STRIKE_MODEL.md) for measured development results and limitations.
+
+The older trajectory baseline remains available with `.venv-safety/bin/python scripts/run_local.py --model baseline` after installing `backend/requirements-safety.txt` and running `scripts/download_models.py`. It needs no Torch. Always pass `--model baseline` when using that lighter environment.
 
 For the pretrained CPU temporal model, stop the first backend and run:
 
@@ -40,13 +42,13 @@ Plain `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --ws-max-size 10485
 ## Live use
 
 1. Select Live Safety, choose a camera and click **Start camera**. Video, person tracking and motion detection start together; microphone permission is never requested.
-2. Keep both participants' upper bodies and arms visible. Labeled boxes and skeletons identify session-local tracks. Fewer than two visible people, uncertain limbs or insufficient history cannot establish a striking interaction.
+2. Keep both participants' bodies and arm motions visible. Labeled person boxes identify session-local tracks. The visual model uses RGB video rather than wrist trajectories; it does not draw inferred skeletons. It needs exactly two detected people and about three seconds of clear history. Briefly wait after Start before performing an action.
 3. Watch for **Possible hit detected** in the live status. Camera selection, Start and Stop are the main controls. **Resume detection** appears only after a pause; returning to a visible tab does not silently resume analysis.
 4. Stop releases the camera and connection. Switching to another application view also releases them. Camera switching requires Stop, select another device, then Start.
 
 The simplified live view has no incident history, clips, sound/phone settings or separate arming step. It requests `live_only: true`: incident writes, recording and phone actions are disabled for that session, and the incident-notification cooldown is removed. Existing local data and the older backend APIs are preserved. A session still expires after one hour by default; Stop/Start renews it.
 
-See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental and human accuracy remains unmeasured.
+See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental. Public-video development results are measured; accuracy on this webcam, these participants and unseen conditions remains unmeasured.
 
 ## Optional expression feature
 

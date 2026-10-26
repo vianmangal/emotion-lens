@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { canStartTrial, createTrial, finishTrial, observeTrial, RESULT_GRACE_MS, summarizeTrials } from '../../utils/liveAccuracy';
+import { canStartTrial, createTrial, finishTrial, observeTrial, RESULT_GRACE_MS, summarizeTrials, trialTiming } from '../../utils/liveAccuracy';
 
 const percent = value => value === null ? '—' : `${Math.round(value * 100)}%`;
 const instructions = {
@@ -15,6 +15,7 @@ export default function LiveAccuracyTest({ armed, result, status, onCue }) {
   const active = useRef(null), inputs = useRef({ armed, result });
   inputs.current = { armed, result };
   const currentDetector = status ? { model: status.model, event_policy: { ...status.event_policy, cooldown: 0 } } : null;
+  const timing = trialTiming(currentDetector);
   const settingsChanged = detector && JSON.stringify(detector) !== JSON.stringify(currentDetector);
   const summary = summarizeTrials(trials);
 
@@ -47,9 +48,11 @@ export default function LiveAccuracyTest({ armed, result, status, onCue }) {
       }
       lastTick = now;
       if (trial.earlyAlert) { complete(); return; }
-      if (now >= trial.end + RESULT_GRACE_MS) { complete(); return; }
+      if (now >= trial.response_end + RESULT_GRACE_MS) { complete(); return; }
       const preparing = now < trial.start, finishing = now >= trial.end;
-      onCue(preparing ? `Get ready · ${Math.ceil((trial.start - now) / 1000)}` : finishing ? 'Checking final frames…' : `MOVE NOW · ${Math.ceil((trial.end - now) / 1000)}s`);
+      onCue(preparing ? `Get ready · ${Math.ceil((trial.start - now) / 1000)}` : finishing ?
+        trial.response_ms && now < trial.response_end ? `Hold still · ${Math.ceil((trial.response_end - now) / 1000)}s` : 'Checking final frames…' :
+        `MOVE NOW · ${Math.ceil((trial.end - now) / 1000)}s`);
       setClock(now);
     };
     tick();
@@ -79,8 +82,9 @@ export default function LiveAccuracyTest({ armed, result, status, onCue }) {
   const download = () => {
     const report = { version: 1, source: 'live camera; operator-confirmed staged trials',
       scope: 'Preliminary per-trial detection results for this setup, not a general accuracy claim. No video or poses saved.',
-      protocol: { countdown_ms: 2000, trial_ms: 6000, result_grace_ms: RESULT_GRACE_MS,
-        ground_truth: 'Operator confirms one intended action during MOVE NOW. Interrupted and discarded trials are unscored.',
+      protocol: { countdown_ms: trialTiming(detector).prepare_ms, trial_ms: 6000,
+        response_window_ms: trialTiming(detector).response_ms, result_grace_ms: RESULT_GRACE_MS,
+        ground_truth: 'Operator confirms one intended action during MOVE NOW and stays still during the response window. Interrupted and discarded trials are unscored.',
         tracking: 'Loss of clear tracking within a completed trial does not exclude a miss. Coverage is reported separately.' },
       exported_at: new Date().toISOString(), detector, summary, trials };
     const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
@@ -100,7 +104,7 @@ export default function LiveAccuracyTest({ armed, result, status, onCue }) {
         </select>
       </label>
       <p className="text-sm text-zinc-300">{instructions[expected]}</p>
-      <p className="text-xs text-zinc-400">Start a trial, stay still for the 2-second countdown, then perform the action once during the 6-second MOVE NOW window.</p>
+      <p className="text-xs text-zinc-400">Start a trial, stay still for the {timing.prepare_ms / 1000}-second countdown, then perform the action once during the 6-second MOVE NOW window.{timing.response_ms > 0 && ` Stay still for ${timing.response_ms / 1000} more seconds while the detector finishes.`}</p>
       {error && <p className="text-sm text-amber-300">{error}</p>}
       {settingsChanged && <p className="text-sm text-amber-300">Detector settings changed. Reset before another trial.</p>}
       {!pending && <div className="flex flex-wrap items-center gap-3">
@@ -110,7 +114,7 @@ export default function LiveAccuracyTest({ armed, result, status, onCue }) {
       </div>}
       {pending && <div className="space-y-3 rounded-xl border border-zinc-700 p-3">
         <p className="text-sm font-semibold">{pending.invalid_reason ? 'Trial not scored' : pending.detected ? 'Detector result: alert observed' : 'Detector result: no alert'}</p>
-        <p className="text-xs text-zinc-400">{pending.invalid_reason || 'Save only if the selected action was performed once during MOVE NOW. Otherwise discard and repeat.'}</p>
+        <p className="text-xs text-zinc-400">{pending.invalid_reason || 'Save only if the selected action was performed once during MOVE NOW and you stayed still afterward. Otherwise discard and repeat.'}</p>
         <p className="text-xs text-zinc-400">Clear two-person tracking: {percent(pending.tracking_coverage)} of the trial. Tracking loss can cause missed attempts; those misses still count.</p>
         <div className="flex flex-wrap gap-2">
           {!pending.invalid_reason && <button className="safety-button safety-primary" onClick={save}>Confirm action & save</button>}

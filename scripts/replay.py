@@ -16,22 +16,33 @@ from backend.safety.event_policy import EventPolicy, threshold_version
 
 
 def model_settings(model):
-    artifacts = json.loads((ROOT / 'scripts/model_artifacts.json').read_text())
-    pose, stgcn = artifacts
+    artifacts = {item['name']: item for item in json.loads((ROOT / 'scripts/model_artifacts.json').read_text())}
+    pose, stgcn = artifacts['pose_landmarker_lite.task'], artifacts['stgcn_ntu60.pth']
+    visual, head = artifacts['s3d_kinetics400.pth'], artifacts['visual_head_v1.json']
+    person = artifacts['efficientdet_lite2_int8.tflite']
     return Settings(SAFETY_POSE_PATH=str(ROOT / 'data/models' / pose['name']), SAFETY_POSE_SHA256=pose['sha256'],
                     SAFETY_TEMPORAL_MODEL=model, SAFETY_STGCN_PATH=str(ROOT / 'data/models' / stgcn['name']),
-                    SAFETY_STGCN_SHA256=stgcn['sha256'], SAFETY_STGCN_CONFIG=str(ROOT / 'scripts/stgcn_config.py'))
+                    SAFETY_STGCN_SHA256=stgcn['sha256'], SAFETY_STGCN_CONFIG=str(ROOT / 'scripts/stgcn_config.py'),
+                    SAFETY_VISUAL_WEIGHTS_PATH=str(ROOT / 'data/models' / visual['name']),
+                    SAFETY_VISUAL_WEIGHTS_SHA256=visual['sha256'],
+                    SAFETY_VISUAL_HEAD_PATH=str(ROOT / head['local_path']), SAFETY_VISUAL_HEAD_SHA256=head['sha256'],
+                    SAFETY_PERSON_PATH=str(ROOT / 'data/models' / person['name']), SAFETY_PERSON_SHA256=person['sha256'])
 
 
 def replay(path, detector, analyzed_fps=10):
     if not math.isfinite(analyzed_fps) or analyzed_fps <= 0:
         raise ValueError('Analysis FPS must be positive and finite')
     cap = cv2.VideoCapture(str(path))
+    previous_sync = getattr(detector.temporal, 'synchronous', None)
     try:
         fps = cap.get(cv2.CAP_PROP_FPS)
         if not cap.isOpened() or not np.isfinite(fps) or fps <= 0:
             raise ValueError(f'Cannot read video: {path}')
         detector.reset()
+        # Source time advances faster than wall time in replay. Visual inference
+        # runs synchronously and publishes after its measured processing delay.
+        if hasattr(detector.temporal, 'synchronous'):
+            detector.temporal.synchronous = True
         options = detector.config.event_policy_options()
         policy = EventPolicy(**options); policy.arm()
         frame_id = 0; next_sample = 0.; available = 0; analyzed = 0
@@ -73,12 +84,14 @@ def replay(path, detector, analyzed_fps=10):
                 'processing_p95_ms': float(np.percentile(latencies, 95)) if latencies else None}
     finally:
         cap.release()
+        if previous_sync is not None:
+            detector.temporal.synchronous = previous_sync
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('video', type=Path)
-    parser.add_argument('--model', choices=['baseline','stgcn'], default='baseline')
+    parser.add_argument('--model', choices=['baseline','stgcn','visual'], default='baseline')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     detector = Detector(model_settings(args.model))

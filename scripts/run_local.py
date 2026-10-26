@@ -10,6 +10,6 @@ import uvicorn
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--model', choices=['baseline','stgcn'], default='baseline')
+    parser.add_argument('--model', choices=['baseline','stgcn','visual'], default='visual')
     args=parser.parse_args()
     uvicorn.run(create_app(model_settings(args.model)), host='127.0.0.1', port=8000, ws_max_size=1024*1024, ws_max_queue=1, workers=1)

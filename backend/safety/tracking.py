@@ -26,8 +26,11 @@ class Tracker:
     def reset(self):
         self.previous.clear()
 
-    def update(self, poses):
-        centers = [tracking_center(points) for points in poses]
+    def update(self, poses, boxes=None, scores=None):
+        if boxes is not None and (len(boxes) != len(poses) or scores is None or len(scores) != len(poses)):
+            raise ValueError('Person boxes must match the observations')
+        centers = ([np.array([(box[0] + box[2]) / 2, (box[1] + box[3]) / 2], np.float32) for box in boxes]
+                   if boxes is not None else [tracking_center(points) for points in poses])
         ids = list(self.previous)
         # MediaPipe returns at most four poses, in no guaranteed order. Match
         # all observations together so a distant first pose cannot steal the
@@ -47,7 +50,7 @@ class Tracker:
         count, cost, best = assignments[0]
         alternatives = [a for n, c, a in assignments[1:] if n == count and c - cost < .06]
         remaining = set(ids)
-        tracks, discontinuity = [], False
+        tracks, discontinuity, anchors = [], False, {}
         for i, points in enumerate(poses):
             track_id = best[i]
             ambiguous = any(a[i] != track_id for a in alternatives)
@@ -60,7 +63,11 @@ class Tracker:
             visible = points[:, 2] > .5
             coords = points[visible, :2]
             box = [*coords.min(axis=0).tolist(), *coords.max(axis=0).tolist()] if len(coords) else [0, 0, 0, 0]
-            tracks.append({'id': track_id, 'points': points, 'box': box})
+            track = {'id': track_id, 'points': points, 'box': boxes[i] if boxes is not None else box}
+            if boxes is not None:
+                track.update(body_observed=True, person_score=float(scores[i]))
+            tracks.append(track)
+            anchors[track_id] = centers[i]
         discontinuity |= bool(remaining)
-        self.previous = {x['id']: tracking_center(x['points']) for x in tracks}
+        self.previous = anchors
         return sorted(tracks, key=lambda x: x['id']), discontinuity

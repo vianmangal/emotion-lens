@@ -84,3 +84,25 @@ test('empty denominators stay unknown and accuracy requires both trial types', (
   assert.equal(negatives.accuracy, null);
   assert.equal(negatives.false_alert_rate, 0);
 });
+
+test('visual trials allow a bounded delayed response while coverage measures only MOVE NOW', () => {
+  let attempt = createTrial('hit', 1000, '2026-10-26T12:00:00Z', { model: 'learned-video-s3d-strike-v1' });
+  assert.equal(attempt.start, 5000);
+  assert.equal(attempt.end, 11000);
+  assert.equal(attempt.response_end, 13000);
+  attempt = observeTrial(attempt, result(5100), 5120);
+  attempt = observeTrial(attempt, result(11900, { state: 'alert_active' }), 11920);
+  const completed = finishTrial(attempt);
+  assert.equal(completed.outcome, 'true_positive');
+  assert.equal(completed.response_window_ms, 2000);
+  assert.equal(completed.tracking_coverage, 500 / 6000);
+});
+
+test('response-only inference and an alert after the response deadline cannot become successes', () => {
+  const visual = () => createTrial('hit', 1000, '2026-10-26T12:00:00Z', { model: 'learned-video-s3d-strike-v1' });
+  let attempt = observeTrial(visual(), result(12000, { state: 'alert_active' }), 12020);
+  assert.equal(finishTrial(attempt).outcome, 'unscored');
+  attempt = observeTrial(visual(), result(5100), 5120);
+  attempt = observeTrial(attempt, result(13000, { state: 'alert_active' }), 13020);
+  assert.equal(finishTrial(attempt).outcome, 'false_negative');
+});

@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     SAFETY_STGCN_PATH: str = ''
     SAFETY_STGCN_SHA256: str = ''
     SAFETY_STGCN_CONFIG: str = ''
+    SAFETY_VISUAL_WEIGHTS_PATH: str = ''
+    SAFETY_VISUAL_WEIGHTS_SHA256: str = ''
+    SAFETY_VISUAL_HEAD_PATH: str = ''
+    SAFETY_VISUAL_HEAD_SHA256: str = ''
+    SAFETY_VISUAL_SYNCHRONOUS: bool = False
+    SAFETY_PERSON_PATH: str = ''
+    SAFETY_PERSON_SHA256: str = ''
     SAFETY_CALL_MODE: str = 'off'
     SAFETY_CALL_PROVIDER: Literal['elevenlabs', 'sarvam'] = 'elevenlabs'
     ELEVENLABS_API_KEY: SecretStr = SecretStr('')
