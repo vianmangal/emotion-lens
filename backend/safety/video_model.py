@@ -79,10 +79,11 @@ class S3DEncoder:
 
 class VideoAction:
     """One RGB window and one inference job; stale/session-old scores abstain."""
-    version = 'learned-video-s3d-strike-v1 (experimental)'
+    version = 'learned-video-s3d-strike-v2 (experimental)'
     window_seconds = 3.3
     interval_seconds = .5
-    max_score_age_seconds = 1.
+    max_score_age_seconds = 1.  # Time since a completed result was published.
+    max_source_age_seconds = 2.  # Never revive a result from an old video window.
     sample_fps = 10  # The learned head was trained on 32 frames spanning 3.1s.
 
     def __init__(self, encoder, head, synchronous=False):
@@ -152,7 +153,7 @@ class VideoAction:
                 # the actual measured inference cost before publishing a score.
                 if not self.synchronous or t >= captured + elapsed:
                     if generation == self.generation:
-                        self.prediction = (captured, score)
+                        self.prediction = (captured, score, t)
                     self.pending = None
         except Exception:
             self.failure = True
@@ -185,7 +186,9 @@ class VideoAction:
             return Evidence(False, people=people, reasons=(reason,))
         if not ready_window:
             return Evidence(False, people=people, reasons=('Building a clear two-person action window…',))
-        if self.prediction is None or not 0 <= t - self.prediction[0] <= self.max_score_age_seconds:
+        if (self.prediction is None or
+                not 0 <= t - self.prediction[0] <= self.max_source_age_seconds or
+                not 0 <= t - self.prediction[2] <= self.max_score_age_seconds):
             return Evidence(False, people=people, reasons=('Waiting for fresh action analysis…',))
         score = self.prediction[1]
         return Evidence(True, score, score >= .75, people,

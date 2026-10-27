@@ -5,7 +5,7 @@ Public hosting was separately requested on 2026-10-27. This supersedes the earli
 ## Deployment
 
 - URL: `https://cnn.vian1.tech`, protected by an owner login at Caddy.
-- Region: `ap-south-1` (Mumbai), one Ubuntu 24.04 EC2 `c7i.xlarge` (4 vCPU, 8 GiB RAM) with encrypted 20 GiB gp3 storage and a fixed public IPv4 address. The initial `t3.medium` was too slow for the model's video sampling requirements; the compute instance runs person detection and background RGB inference concurrently.
+- Region: `ap-south-1` (Mumbai), one Ubuntu 24.04 EC2 `c7i.xlarge` (4 vCPU, 8 GiB RAM) with encrypted 20 GiB gp3 storage and a fixed public IPv4 address. The initial `t3.medium` was too slow for the video sampling requirements. This instance runs person detection and background RGB inference concurrently; the v2 adapter handles bounded inference time separately from stale publications.
 - Caddy serves the production Vite build and terminates HTTPS. `/safety/*`, `/predict` and `/health` proxy to FastAPI on loopback port 8000, including WebSockets.
 - Only ports 80 and 443 are publicly reachable. Port 80 is for certificate validation and HTTPS redirects. Administration uses AWS Systems Manager; SSH and the raw API port are not exposed.
 - Source releases live in `/opt/emotionlens/releases/`; `/opt/emotionlens/current` selects a release. SQLite, models and any runtime data live separately under `/var/lib/emotionlens` and survive code updates.
@@ -16,7 +16,9 @@ This deployment is a single-camera personal demo, not a multi-user monitoring se
 
 CPU inference and network round-trip time affect tracking throughput and alert latency. The UI requests a 30 FPS native preview and targets 20 tracking updates/s, with at most two outstanding frames to overlap network round trips. The RGB model retains its trained 10 FPS history and approximately three-second window. These targets are not guaranteed cloud performance or accuracy.
 
-The hosted runner enables fixed-shape TorchScript CPU inference fusion for the S3D feature extractor. Weights and FP32 precision remain unchanged. On this CPU, an isolated generated-input check reduced warm feature inference from about 0.60 seconds to 0.40–0.42 seconds, with maximum feature difference `4.53e-6` and `allclose(atol=1e-5, rtol=1e-4)`. This is numerical/performance verification, not action-accuracy validation. The normal local runner keeps its existing eager execution by default.
+The hosted runner enables fixed-shape TorchScript CPU inference fusion for the S3D feature extractor. Weights and FP32 precision remain unchanged. During initial profiling on `c7i.xlarge`, an isolated generated-input check reduced warm feature inference from about 0.60 seconds to 0.40–0.42 seconds, with maximum feature difference `4.53e-6` and `allclose(atol=1e-5, rtol=1e-4)`. This is numerical/performance verification, not action-accuracy validation. The normal local runner keeps its existing eager execution by default.
+
+The v2 adapter separates result publication freshness (one second) from the source-window computation budget (two seconds), while retaining current body observations, dense history, session generation and transport freshness gates. This prevents normal bounded CPU inference time from repeatedly interrupting candidate confirmation and quiet-period clearing. Regression checks require a delayed positive episode to open and then clear, and separately reject stale sources and frozen publishers. Classification thresholds and weights are unchanged; the earlier v1 public-development report is historical, not a new v2 accuracy measurement.
 
 ## Build and update
 

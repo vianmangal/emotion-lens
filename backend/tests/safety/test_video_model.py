@@ -140,7 +140,7 @@ def test_background_inference_does_not_block_frame_processing_or_queue_jobs():
         evidence = feed(model, 90)
         assert model.future is running and not any(e.directed for e in evidence)
         assert len(model.frames) <= 34
-        model.prediction = (0., .99)
+        model.prediction = (0., .99, 0.)
         assert not feed(model, 1, start=90)[0].directed
     finally:
         running.cancel()
@@ -153,6 +153,42 @@ def test_encoder_failure_abstains():
     try:
         result = feed(model)[-1]
         assert not result.ready and 'unavailable' in result.reasons[0]
+    finally:
+        model.close()
+
+
+def test_slow_bounded_video_results_can_open_and_clear_an_episode():
+    from backend.safety.event_policy import EventPolicy
+    model = fake_model()
+    model._predict = lambda frames, generation, captured: (generation, captured, .99 if captured < 6 else .1, .8)
+    policy = EventPolicy(cooldown=0)
+    policy.arm()
+    opened = closed = 0
+    try:
+        for i in range(150):
+            t = i / 10
+            evidence = model.process_frame(t, np.zeros((48, 64, 3), np.uint8), bodies())
+            created, ended = policy.step(t, evidence)
+            opened += created
+            closed += ended
+        assert opened == 1 and closed == 1
+        assert policy.state == 'monitoring'
+    finally:
+        model.close()
+
+
+@pytest.mark.parametrize('prediction,ready', [
+    ((3.5, .99, 4.3), True),  # Recent source and newly completed result.
+    ((1., .99, 5.), False),  # A newly published result cannot revive old video.
+    ((5., .99, 1.), False),  # Recent source cannot revive a frozen publisher.
+])
+def test_video_result_requires_both_source_and_publication_freshness(prediction, ready):
+    model = fake_model()
+    try:
+        feed(model, 50)
+        model.prediction, model.pending, model.next_run = prediction, None, float('inf')
+        result = model.process_frame(5., np.zeros((48, 64, 3), np.uint8), bodies())
+        assert result.ready is ready
     finally:
         model.close()
 

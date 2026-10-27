@@ -98,6 +98,7 @@ export default function LiveSafety() {
       </div>
     </section>
     <p className="text-xs text-zinc-500">Keep both people’s upper bodies and arms visible. Allow a few seconds of clear video for detection to warm up.</p>
+    {!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) && <p className="text-xs text-zinc-500">Camera frames are sent securely to the demo server for processing. Live Safety does not save video or place calls.</p>}
     <LiveAccuracyTest armed={session.armed} result={current} status={status} onCue={setTestCue} />
   </div>;
 }

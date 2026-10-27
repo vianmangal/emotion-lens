@@ -51,7 +51,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         </nav>
 
         <div className="border-t border-zinc-900 px-4 py-5 text-[9px] text-zinc-600">
-          <div>LOCAL COMPUTER</div>
+          <div>{['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) ? 'LOCAL COMPUTER' : 'HOSTED DEMO'}</div>
         </div>
       </aside>
     </>
