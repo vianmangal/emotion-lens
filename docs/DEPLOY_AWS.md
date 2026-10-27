@@ -4,15 +4,15 @@ Public hosting was separately requested on 2026-10-27. This supersedes the earli
 
 ## Deployment
 
-- URL: `https://cnn.vian1.tech`, protected by an owner login at Caddy.
+- URL: `https://cnn.vian1.tech`, publicly accessible without a login.
 - Region: `ap-south-1` (Mumbai), one Ubuntu 24.04 EC2 `c7i.xlarge` (4 vCPU, 8 GiB RAM) with encrypted 20 GiB gp3 storage and a fixed public IPv4 address. The initial `t3.medium` was too slow for the video sampling requirements. This instance runs person detection and background RGB inference concurrently; the v2 adapter handles bounded inference time separately from stale publications.
 - Caddy serves the production Vite build and terminates HTTPS. `/safety/*`, `/predict` and `/health` proxy to FastAPI on loopback port 8000, including WebSockets.
 - Only ports 80 and 443 are publicly reachable. Port 80 is for certificate validation and HTTPS redirects. Administration uses AWS Systems Manager; SSH and the raw API port are not exposed.
 - Source releases live in `/opt/emotionlens/releases/`; `/opt/emotionlens/current` selects a release. SQLite, models and any runtime data live separately under `/var/lib/emotionlens` and survive code updates.
 - The instance reads its release from a private, encrypted S3 bucket. Runtime configuration is an encrypted SSM SecureString at `/emotionlens/demo/config`, materialized as root-only systemd configuration. Provider secrets are never included in the frontend, source archive, Git or instance user data.
-- The owner password is generated separately from phone credentials; its bcrypt hash is used by Caddy. The local owner-access note is ignored by Git. Rotate it through the encrypted configuration and redeploy the service configuration.
+- Caddy rejects public `/safety/phone` routes with HTTP 403. Paid phone tests and their records remain accessible through server administration on the loopback API. The retired `DEMO_AUTH_HASH` configuration is ignored and no login environment file is installed.
 
-This deployment is a single-camera personal demo, not a multi-user monitoring service. Webcam frames leave the visitor's machine for inference over authenticated TLS. Live-only sessions do not store video, incidents or schedule calls. The manual call-test endpoint is behind the same owner login. Automatic real calls remain locked because detection qualification is unmet. No real call should be placed as a deployment health check.
+This deployment is a single-camera personal demo, not a multi-user monitoring service. Webcam frames leave the visitor's machine for inference over TLS. Live-only sessions do not store video, incidents or schedule calls. Public visitors cannot access the manual call-test endpoint. Automatic real calls remain locked because detection qualification is unmet. No real call should be placed as a deployment health check.
 
 CPU inference and network round-trip time affect tracking throughput and alert latency. The UI requests a 30 FPS native preview and targets 20 tracking updates/s, with at most two outstanding frames to overlap network round trips. The RGB model retains its trained 10 FPS history and approximately three-second window. These targets are not guaranteed cloud performance or accuracy.
 
@@ -33,7 +33,7 @@ npm run build --prefix deep_fe/frontend
 npm run test:e2e --prefix deep_fe/frontend
 ```
 
-After installation, check the localhost `/health` through SSM, then verify the public HTTPS certificate, unauthenticated 401 response, authenticated frontend/API, loaded model artifacts and WebSocket session flow. Check `systemctl status emotionlens caddy` and `journalctl -u emotionlens` through SSM for diagnosis. Logs must not contain provider keys or authorization headers.
+After installation, check the localhost `/health` through SSM, then verify the public HTTPS certificate, frontend/API HTTP 200 responses without credentials, HTTP 403 for public phone routes, loaded model artifacts and WebSocket session flow. Check `systemctl status emotionlens caddy` and `journalctl -u emotionlens` through SSM for diagnosis. Logs must not contain provider keys or authorization headers.
 
 ## Rollback and persistence
 

@@ -44,9 +44,9 @@ The Live Safety screen does **not** save incident history or video clips, or mak
 
 ## Hosted demo
 
-The owner-access deployment is at **https://cnn.vian1.tech**. The browser captures the camera locally and sends frames over an authenticated HTTPS/WebSocket connection to the AWS detection backend. Hosted inference adds network latency. Camera preview and tracking rates are shown separately. The hosted demo supports one active camera session at a time.
+The public demo is at **https://cnn.vian1.tech** and opens without a login. The browser captures the camera locally and sends frames over HTTPS/WebSocket to the AWS detection backend. Hosted inference adds network latency. Camera preview and tracking rates are shown separately. The hosted demo supports one active camera session at a time. Paid phone controls are accessible only through server administration.
 
-Deployment details and update instructions are in [DEPLOY_AWS.md](docs/DEPLOY_AWS.md). Calling remains off in Live Safety; separately requested manual test calls use the protected backend API. The detector is still experimental and automatic real calls remain unavailable.
+Deployment details and update instructions are in [DEPLOY_AWS.md](docs/DEPLOY_AWS.md). Calling remains off in Live Safety; separately requested manual test calls use the backend API through server administration. The detector is still experimental and automatic real calls remain unavailable.
 
 ## More information
 

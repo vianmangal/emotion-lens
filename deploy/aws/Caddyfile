@@ -1,11 +1,13 @@
 cnn.vian1.tech {
-    basic_auth {
-        vian {$DEMO_AUTH_HASH}
-    }
     header {
         X-Content-Type-Options nosniff
         Referrer-Policy same-origin
         Permissions-Policy "camera=(self), microphone=()"
+    }
+    # Paid phone controls stay private on the public, login-free demo.
+    @phone path /safety/phone /safety/phone/*
+    handle @phone {
+        respond "Phone controls are available through server administration only." 403
     }
     @api path /safety /safety/* /health /predict /predict/*
     handle @api {

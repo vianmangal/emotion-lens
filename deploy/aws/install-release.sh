@@ -25,23 +25,17 @@ python3.12 - <<'PY'
 import json
 from pathlib import Path
 config = json.loads(Path('/etc/emotionlens/settings.json').read_text())
-auth = config.pop('DEMO_AUTH_HASH')
+config.pop('DEMO_AUTH_HASH', None)  # Ignore the retired owner-login setting.
 # Values are JSON-quoted, which is valid systemd EnvironmentFile syntax.
 Path('/etc/emotionlens/app.env').write_text(''.join(key + '=' + json.dumps(str(value)) + '\n' for key, value in config.items()))
-Path('/etc/caddy/emotionlens-auth.env').write_text('DEMO_AUTH_HASH=' + auth + '\n')
 PY
 chmod 600 /etc/emotionlens/app.env
-chown root:caddy /etc/caddy/emotionlens-auth.env
-chmod 640 /etc/caddy/emotionlens-auth.env
 rm /etc/emotionlens/settings.json
 ln -sfn "$release" /opt/emotionlens/current
 install -m 644 "$release/deploy/aws/emotionlens.service" /etc/systemd/system/emotionlens.service
 install -m 644 "$release/deploy/aws/Caddyfile" /etc/caddy/Caddyfile
-install -d /etc/systemd/system/caddy.service.d
-cat > /etc/systemd/system/caddy.service.d/emotionlens.conf <<'EOF'
-[Service]
-EnvironmentFile=/etc/caddy/emotionlens-auth.env
-EOF
+rm -f /etc/systemd/system/caddy.service.d/emotionlens.conf
+rm -f /etc/caddy/emotionlens-auth.env
 systemctl daemon-reload
 systemctl enable --now emotionlens
 systemctl restart emotionlens
