@@ -6,7 +6,9 @@ async function capability() {
   if (token) return token;
   if (!bootstrap) bootstrap = fetch(`${base}/safety/bootstrap`, { headers: { 'X-EmotionLens-Client': 'local-ui' } })
     .then(async response => {
-      if (!response.ok) throw new Error('Cannot connect to the local backend. Start FastAPI on 127.0.0.1:8000.');
+      if (!response.ok) throw new Error(['localhost', '127.0.0.1'].includes(window.location.hostname)
+        ? 'Cannot connect to the local backend. Start FastAPI on 127.0.0.1:8000.'
+        : 'Cannot connect to the detection service. Please try again shortly.');
       token = (await response.json()).capability;
       return token;
     }).finally(() => { bootstrap = null; });

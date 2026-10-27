@@ -1,0 +1,21 @@
+cnn.vian1.tech {
+    basic_auth {
+        vian {$DEMO_AUTH_HASH}
+    }
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+        Permissions-Policy "camera=(self), microphone=()"
+    }
+    @api path /safety /safety/* /health /predict /predict/*
+    handle @api {
+        reverse_proxy 127.0.0.1:8000 {
+            header_up -Authorization
+        }
+    }
+    handle {
+        root * /opt/emotionlens/current/deep_fe/frontend/dist
+        try_files {path} /index.html
+        file_server
+    }
+}

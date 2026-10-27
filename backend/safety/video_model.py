@@ -2,6 +2,7 @@
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 import json
+import os
 import time
 
 import cv2
@@ -50,7 +51,7 @@ class S3DEncoder:
         # by Detector; startup never downloads a model or imports expression AI.
         import torch
         from torchvision.models.video import s3d, S3D_Weights
-        torch.set_num_threads(4)
+        torch.set_num_threads(min(4, os.cpu_count() or 1))
         self.torch = torch
         self.model = s3d(weights=None).eval()
         self.model.load_state_dict(torch.load(weights, map_location='cpu', weights_only=True))
