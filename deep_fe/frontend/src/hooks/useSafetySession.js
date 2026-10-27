@@ -3,7 +3,7 @@ import { safetyRequest, streamUrl } from '../api/safety';
 
 export default function useSafetySession() {
   const videoRef = useRef(null);
-  const resources = useRef({ stream: null, ws: null, session: null, timer: null, videoCallback: null, cancelConnect: null, armed: false, epoch: 0, control: 0, lastResult: 0, inFlight: null });
+  const resources = useRef({ stream: null, ws: null, session: null, timer: null, videoCallback: null, cancelConnect: null, armed: false, epoch: 0, control: 0, lastResult: 0, inFlight: new Set() });
   const [camera, setCamera] = useState(false);
   const [starting, setStarting] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -24,7 +24,7 @@ export default function useSafetySession() {
     r.timer = null;
     if (r.videoCallback !== null) videoRef.current?.cancelVideoFrameCallback?.(r.videoCallback);
     r.videoCallback = null;
-    r.inFlight = null;
+    r.inFlight = new Set();
     r.cancelConnect?.();
     const session = r.session;
     r.session = null;
@@ -119,7 +119,7 @@ export default function useSafetySession() {
           return;
         }
         if (!r.armed || (data.generation !== undefined && data.generation < r.generation)) return;
-        if (data.frame_id === r.inFlight) r.inFlight = null;
+        r.inFlight.delete(data.frame_id);
         inferred += 1;
         r.lastResult = performance.now();
         const age = Number.isFinite(data.captured_ms) ? Math.max(0, performance.now() - data.captured_ms) : data.frame_age_ms;
@@ -138,9 +138,10 @@ export default function useSafetySession() {
         if (!r.armed || document.hidden) return;
         if (performance.now() - r.lastResult > 1500) { disarm('Fresh inference stopped. Explicitly re-arm after recovery.'); return; }
         const now = performance.now();
-        // One outstanding frame keeps latency bounded on slower machines.
+        // Two outstanding frames overlap network round trips while bounding
+        // server work to one active frame and one pending frame.
         // The native video preview continues independently at camera speed.
-        if (encoding || r.inFlight !== null || now < nextCapture || !video?.videoWidth || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 512 * 1024) return;
+        if (encoding || r.inFlight.size >= 2 || now < nextCapture || !video?.videoWidth || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 512 * 1024) return;
         if (video.currentTime !== videoTime) { videoTime = video.currentTime; changedAt = performance.now(); }
         else if (performance.now() - changedAt > 1000) { disarm('Camera preview frozen. Stop and restart the camera.'); return; }
         const capturedAt = performance.now();
@@ -159,7 +160,7 @@ export default function useSafetySession() {
             let binary = ''; for (const b of bytes) binary += String.fromCharCode(b);
             if (!r.armed || r.epoch !== epoch || r.control !== captureControl || ws.readyState !== WebSocket.OPEN) return;
             const id = frameId++;
-            r.inFlight = id;
+            r.inFlight.add(id);
             ws.send(JSON.stringify({ v: 1, session_id: session.id, frame_id: id, captured_ms: capturedAt, jpeg: btoa(binary) }));
             sent += 1;
           } finally { encoding = false; }
@@ -195,7 +196,7 @@ export default function useSafetySession() {
         return false;
       }
       r.lastResult = performance.now();
-      r.inFlight = null;
+      r.inFlight = new Set();
       r.generation = response.generation;
       r.armed = true;
       setArmed(true); setResult({ state: 'warming_up', reason: 'Building temporal evidence…', tracks: [] });

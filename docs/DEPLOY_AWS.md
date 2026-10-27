@@ -5,7 +5,7 @@ Public hosting was separately requested on 2026-10-27. This supersedes the earli
 ## Deployment
 
 - URL: `https://cnn.vian1.tech`, protected by an owner login at Caddy.
-- Region: `ap-south-1` (Mumbai), one Ubuntu 24.04 EC2 `t3.medium` with encrypted 20 GiB gp3 storage and a fixed public IPv4 address.
+- Region: `ap-south-1` (Mumbai), one Ubuntu 24.04 EC2 `c7i.xlarge` (4 vCPU, 8 GiB RAM) with encrypted 20 GiB gp3 storage and a fixed public IPv4 address. The initial `t3.medium` was too slow for the model's video sampling requirements; the compute instance runs person detection and background RGB inference concurrently.
 - Caddy serves the production Vite build and terminates HTTPS. `/safety/*`, `/predict` and `/health` proxy to FastAPI on loopback port 8000, including WebSockets.
 - Only ports 80 and 443 are publicly reachable. Port 80 is for certificate validation and HTTPS redirects. Administration uses AWS Systems Manager; SSH and the raw API port are not exposed.
 - Source releases live in `/opt/emotionlens/releases/`; `/opt/emotionlens/current` selects a release. SQLite, models and any runtime data live separately under `/var/lib/emotionlens` and survive code updates.
@@ -14,7 +14,7 @@ Public hosting was separately requested on 2026-10-27. This supersedes the earli
 
 This deployment is a single-camera personal demo, not a multi-user monitoring service. Webcam frames leave the visitor's machine for inference over authenticated TLS. Live-only sessions do not store video, incidents or schedule calls. The manual call-test endpoint is behind the same owner login. Automatic real calls remain locked because detection qualification is unmet. No real call should be placed as a deployment health check.
 
-CPU inference and network round-trip time affect tracking throughput and alert latency. The UI requests a 30 FPS native preview and targets 20 tracking updates/s, with one outstanding frame. The RGB model retains its trained 10 FPS history and approximately three-second window. These targets are not guaranteed cloud performance or accuracy.
+CPU inference and network round-trip time affect tracking throughput and alert latency. The UI requests a 30 FPS native preview and targets 20 tracking updates/s, with at most two outstanding frames to overlap network round trips. The RGB model retains its trained 10 FPS history and approximately three-second window. These targets are not guaranteed cloud performance or accuracy.
 
 ## Build and update
 

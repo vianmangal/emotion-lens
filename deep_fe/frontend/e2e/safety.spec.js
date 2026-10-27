@@ -55,16 +55,16 @@ const pair = [
   { id: 2, box: [.6, .15, .9, .9], points: Array.from({ length: 17 }, (_, i) => [.65 + (i % 2) * .2, .2 + i * .025, .95]) },
 ];
 
-test('slow tracking keeps the camera playing without queuing stale frames', async ({ page }) => {
+test('slow tracking keeps the camera playing with at most two outstanding frames', async ({ page }) => {
   const { frames, releaseNext } = await setup(page, 'test-model', { holdResponses: true });
   await page.getByRole('button', { name: 'Start camera' }).click();
-  await expect.poll(() => frames.length).toBe(1);
+  await expect.poll(() => frames.length).toBe(2);
   const before = await page.locator('video').evaluate(video => video.currentTime);
   await page.waitForTimeout(250);
-  expect(frames).toHaveLength(1);
+  expect(frames).toHaveLength(2);
   expect(await page.locator('video').evaluate(video => video.currentTime)).toBeGreaterThan(before);
   releaseNext();
-  await expect.poll(() => frames.length).toBe(2);
+  await expect.poll(() => frames.length).toBe(3);
   await page.getByRole('button', { name: 'Stop', exact: true }).click();
 });
 
