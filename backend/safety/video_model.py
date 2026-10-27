@@ -70,6 +70,7 @@ class VideoAction:
     window_seconds = 3.3
     interval_seconds = .5
     max_score_age_seconds = 1.
+    sample_fps = 10  # The learned head was trained on 32 frames spanning 3.1s.
 
     def __init__(self, encoder, head, synchronous=False):
         self.encoder, self.head = encoder, head
@@ -86,6 +87,9 @@ class VideoAction:
         self.prediction = None
         self.pending = None
         self.next_run = -1.
+        self.last_frame_t = None
+        self.sample_origin = None
+        self.sample_bucket = -1
         self.failure = False
         if self.future is not None:
             self.future.cancel()
@@ -110,11 +114,17 @@ class VideoAction:
             np.min(p['points'][[5, 6], 2]) >= .55 for p in tracks)
 
     def process_frame(self, t, frame, tracks):
-        if self.frames and (t <= self.frames[-1][0] or t - self.frames[-1][0] > 1):
+        if self.last_frame_t is not None and (t <= self.last_frame_t or t - self.last_frame_t > 1):
             self.reset()
+        self.last_frame_t = t
         current_valid = self.two_bodies(tracks)
-        rgb = cv2.cvtColor(cv2.resize(frame, (256, 256)), cv2.COLOR_BGR2RGB)
-        self.frames.append((t, rgb, current_valid))
+        if self.sample_origin is None:
+            self.sample_origin = t
+        bucket = int(np.floor((t - self.sample_origin) * self.sample_fps + 1e-6))
+        if bucket > self.sample_bucket:
+            rgb = cv2.cvtColor(cv2.resize(frame, (256, 256)), cv2.COLOR_BGR2RGB)
+            self.frames.append((t, rgb, current_valid))
+            self.sample_bucket = bucket
         while self.frames and t - self.frames[0][0] > self.window_seconds:
             self.frames.popleft()
 

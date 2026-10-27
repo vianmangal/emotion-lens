@@ -60,6 +60,22 @@ def test_fresh_negative_video_is_clear_and_buffers_are_bounded():
         model.close()
 
 
+@pytest.mark.parametrize('fps', [10, 20, 30])
+def test_faster_tracking_preserves_the_trained_action_window(fps):
+    model = fake_model()
+    try:
+        frame = np.zeros((48, 64, 3), np.uint8)
+        for i in range(6 * fps):
+            result = model.process_frame(i / fps, frame, bodies())
+        assert result.ready and result.directed
+        assert 30 <= len(model.frames) <= 34
+        assert model.frames[-1][0] - model.frames[0][0] >= 3
+        # The neural input rate stays 10 FPS even with 30 FPS box tracking.
+        assert all(b[0] - a[0] >= .09 for a, b in zip(model.frames, list(model.frames)[1:]))
+    finally:
+        model.close()
+
+
 @pytest.mark.parametrize('count', [0, 1, 3])
 def test_visual_score_requires_exactly_two_people(count):
     model = fake_model()

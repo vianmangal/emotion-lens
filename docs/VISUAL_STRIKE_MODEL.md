@@ -4,10 +4,10 @@ Updated 2026-10-27. The default local demo uses learned RGB action recognition a
 
 ## Runtime
 
-1. Browser sends video-only JPEGs, quality 75, at a target 10 FPS and at most 640×480. Webcam pixels are not mirrored before inference; the UI mirrors video and overlays together.
+1. Browser requests a 30 FPS native video preview and sends video-only JPEGs, quality 75, at a target 20 tracking updates per second and at most 640×480. Only one frame can await a server result, so slow inference reduces throughput instead of accumulating stale frames. The footer separately measures camera presentation FPS and completed tracking FPS; neither number is the neural classifier's rate. Webcam pixels are not mirrored before inference; the UI mirrors video and overlays together.
 2. MediaPipe EfficientDet-Lite2 int8 detects person boxes, with score ≥0.20 and area ≥1% of the image. A global centroid assignment supplies session-local track IDs. These are observed boxes, not fabricated pose landmarks. No skeleton is drawn in visual mode.
 3. Exactly two detected people must be present now, and in at least 80% of the roughly 3.2-second RGB window. Warm-up requires at least 24 samples spanning three seconds, with adjacent sample gaps no greater than 500 ms. Missing wrists or shoulders do not independently remove a person box. A third foreground person prevents action inference.
-4. A frozen Torchvision S3D Kinetics-400 encoder receives 32 uniformly sampled RGB frames at 10 FPS, resized to 256×256 and transformed by its official normalization/224-pixel center crop. A numeric 1024→32 ReLU→1 head scores possible striking motion.
+4. RGB history is sampled separately at 10 FPS, regardless of the faster box-tracking input. This preserves the trained time span and bounded buffer. A frozen Torchvision S3D Kinetics-400 encoder receives 32 uniformly sampled RGB frames at 10 FPS, resized to 256×256 and transformed by its official normalization/224-pixel center crop. A numeric 1024→32 ReLU→1 head scores possible striking motion.
 5. One background inference job runs at a time, scheduled at most every 500 ms. The frame buffer and work queue are bounded; new camera frames do not wait for neural inference. Scores older than one second from their source frame abstain. Reset, long gaps and session changes discard incompatible windows/results. Runtime downloads nothing.
 6. Live-only policy requires score ≥0.75 for 300 ms. An alert clears after score ≤0.35 for two seconds of ready evidence. Live-only cooldown is zero. Uncertain frames cannot open or close an episode. Alert delay includes the RGB window and inference time; this is not pre-contact prediction.
 
@@ -36,7 +36,7 @@ Five-fold GroupKFold keeps each original, its mirrored copy and its static varia
 
 ## Measured full-pipeline development check
 
-The final check replays all 30 selected LIMU videos in each orientation through actual JPEG decoding, person detection, tracking, RGB inference and the live-only event policy. Replay is causal; synchronous offline inference waits for its measured computation delay in source time before publishing a score. Cold-start warm-up and tracking failures remain in the clip denominator.
+The recorded development check replays all 30 selected LIMU videos in each orientation at 10 analyzed FPS through actual JPEG decoding, person detection, tracking, RGB inference and the live-only event policy. It predates the camera/tracking FPS separation above; its pipeline hash identifies that measured implementation. The learned weights, model time span and decision thresholds are unchanged. Replay is causal; synchronous offline inference waits for its measured computation delay in source time before publishing a score. Cold-start warm-up and tracking failures remain in the clip denominator.
 
 | Detector / orientation | Punch clips alerted | Ordinary clips falsely alerted |
 | --- | ---: | ---: |

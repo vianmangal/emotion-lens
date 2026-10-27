@@ -3,7 +3,7 @@ import { safetyRequest, streamUrl } from '../api/safety';
 
 export default function useSafetySession() {
   const videoRef = useRef(null);
-  const resources = useRef({ stream: null, ws: null, session: null, timer: null, cancelConnect: null, armed: false, epoch: 0, control: 0, lastResult: 0 });
+  const resources = useRef({ stream: null, ws: null, session: null, timer: null, videoCallback: null, cancelConnect: null, armed: false, epoch: 0, control: 0, lastResult: 0, inFlight: null });
   const [camera, setCamera] = useState(false);
   const [starting, setStarting] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -13,6 +13,7 @@ export default function useSafetySession() {
   const [aspect, setAspect] = useState(4 / 3);
   const [fps, setFps] = useState(0);
   const [inferenceFps, setInferenceFps] = useState(0);
+  const [previewFps, setPreviewFps] = useState(0);
 
   const stop = useCallback(async (update = true) => {
     const r = resources.current;
@@ -21,6 +22,9 @@ export default function useSafetySession() {
     r.armed = false;
     clearInterval(r.timer);
     r.timer = null;
+    if (r.videoCallback !== null) videoRef.current?.cancelVideoFrameCallback?.(r.videoCallback);
+    r.videoCallback = null;
+    r.inFlight = null;
     r.cancelConnect?.();
     const session = r.session;
     r.session = null;
@@ -28,7 +32,7 @@ export default function useSafetySession() {
     r.stream?.getTracks().forEach(track => { track.onended = null; track.stop(); });
     r.stream = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    if (update) { setCamera(false); setStarting(false); setArmed(false); setResult(null); setFps(0); setInferenceFps(0); }
+    if (update) { setCamera(false); setStarting(false); setArmed(false); setResult(null); setFps(0); setInferenceFps(0); setPreviewFps(0); }
     if (session) {
       try { await safetyRequest(`/sessions/${session.id}`, { method: 'DELETE', session }); } catch { /* Backend disconnect also expires session. */ }
     }
@@ -57,11 +61,25 @@ export default function useSafetySession() {
     setError(''); setStarting(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access needs a supported browser on localhost.');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { width: { ideal: 640 }, height: { ideal: 480 }, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) } });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 }, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) } });
       if (r.epoch !== epoch) { stream.getTracks().forEach(t => t.stop()); return false; }
       r.stream = stream;
       stream.getVideoTracks().forEach(t => { t.onended = () => { setError('Camera disconnected. Start again to recover.'); stop(); }; });
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
+      const preview = videoRef.current;
+      if (preview?.requestVideoFrameCallback) {
+        let since = null, firstFrames = 0;
+        const measurePreview = (now, metadata) => {
+          if (r.epoch !== epoch || r.stream !== stream) return;
+          if (since === null) { since = now; firstFrames = metadata.presentedFrames; }
+          if (now - since >= 1000) {
+            setPreviewFps((metadata.presentedFrames - firstFrames) * 1000 / (now - since));
+            since = now; firstFrames = metadata.presentedFrames;
+          }
+          r.videoCallback = preview.requestVideoFrameCallback(measurePreview);
+        };
+        r.videoCallback = preview.requestVideoFrameCallback(measurePreview);
+      }
       const session = await safetyRequest('/sessions', { method: 'POST', body: { source: 'live', live_only: true } });
       if (r.epoch !== epoch) { await safetyRequest(`/sessions/${session.id}`, { method: 'DELETE', session }); return false; }
       r.session = session;
@@ -83,7 +101,7 @@ export default function useSafetySession() {
         ws.onclose = () => complete(new Error('Camera stream closed.'));
       });
       if (r.epoch !== epoch) return false;
-      let frameId = 0, encoding = false, sent = 0, inferred = 0, measuredAt = performance.now(), videoTime = -1, changedAt = performance.now();
+      let frameId = 0, encoding = false, sent = 0, inferred = 0, measuredAt = performance.now(), videoTime = -1, changedAt = performance.now(), nextCapture = 0;
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       ws.onmessage = e => {
@@ -101,6 +119,7 @@ export default function useSafetySession() {
           return;
         }
         if (!r.armed || (data.generation !== undefined && data.generation < r.generation)) return;
+        if (data.frame_id === r.inFlight) r.inFlight = null;
         inferred += 1;
         r.lastResult = performance.now();
         const age = Number.isFinite(data.captured_ms) ? Math.max(0, performance.now() - data.captured_ms) : data.frame_age_ms;
@@ -118,10 +137,14 @@ export default function useSafetySession() {
         }
         if (!r.armed || document.hidden) return;
         if (performance.now() - r.lastResult > 1500) { disarm('Fresh inference stopped. Explicitly re-arm after recovery.'); return; }
-        if (encoding || !video?.videoWidth || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 512 * 1024) return;
+        const now = performance.now();
+        // One outstanding frame keeps latency bounded on slower machines.
+        // The native video preview continues independently at camera speed.
+        if (encoding || r.inFlight !== null || now < nextCapture || !video?.videoWidth || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 512 * 1024) return;
         if (video.currentTime !== videoTime) { videoTime = video.currentTime; changedAt = performance.now(); }
         else if (performance.now() - changedAt > 1000) { disarm('Camera preview frozen. Stop and restart the camera.'); return; }
         const capturedAt = performance.now();
+        nextCapture = capturedAt + 50; // Target 20 tracking updates/s; never queue to achieve it.
         const captureControl = r.control;
         const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
         canvas.width = Math.round(video.videoWidth * scale);
@@ -135,11 +158,13 @@ export default function useSafetySession() {
             const bytes = new Uint8Array(await blob.arrayBuffer());
             let binary = ''; for (const b of bytes) binary += String.fromCharCode(b);
             if (!r.armed || r.epoch !== epoch || r.control !== captureControl || ws.readyState !== WebSocket.OPEN) return;
-            ws.send(JSON.stringify({ v: 1, session_id: session.id, frame_id: frameId++, captured_ms: capturedAt, jpeg: btoa(binary) }));
+            const id = frameId++;
+            r.inFlight = id;
+            ws.send(JSON.stringify({ v: 1, session_id: session.id, frame_id: id, captured_ms: capturedAt, jpeg: btoa(binary) }));
             sent += 1;
           } finally { encoding = false; }
         }, 'image/jpeg', .75);
-      }, 100);
+      }, 10);
       const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
       if (r.epoch !== epoch) return false;
       setDevices(devices.filter(d => d.kind === 'videoinput'));
@@ -170,6 +195,7 @@ export default function useSafetySession() {
         return false;
       }
       r.lastResult = performance.now();
+      r.inFlight = null;
       r.generation = response.generation;
       r.armed = true;
       setArmed(true); setResult({ state: 'warming_up', reason: 'Building temporal evidence…', tracks: [] });
@@ -185,5 +211,5 @@ export default function useSafetySession() {
     navigator.mediaDevices?.enumerateDevices().then(list => setDevices(list.filter(d => d.kind === 'videoinput'))).catch(() => {});
     return () => { document.removeEventListener('visibilitychange', hidden); window.removeEventListener('pagehide', pagehide); stop(false); };
   }, [stop, disarm]);
-  return { videoRef, camera, starting, armed, result, error, devices, aspect, fps, inferenceFps, start, stop, arm, disarm };
+  return { videoRef, camera, starting, armed, result, error, devices, aspect, fps, inferenceFps, previewFps, start, stop, arm, disarm };
 }

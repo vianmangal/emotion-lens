@@ -30,6 +30,8 @@ This uses the learned RGB model. For a fresh installation, follow [LOCAL_SETUP.m
 
 Rehearse with the actual participants and lighting before presenting. The detector is experimental and can miss actions or flag ordinary gestures. A single person shadowboxing is not a two-person interaction. There is no simulated detection trigger.
 
+The footer separates **Camera FPS** (native preview, requested at 30 FPS) from **Tracking FPS** (completed person-box updates, target 20 FPS). Slower hardware lowers tracking throughput without queuing old frames. The learned action model retains its trained 3.2-second window sampled at 10 FPS; increasing box-update FPS does not make hit warnings instantaneous.
+
 If the page shows **Only one person tracked**, move the camera farther back and keep both people away from the side edges. If it shows a warm-up message, hold that framing until the RGB window fills. The person detector is separate from joint visibility, so a hidden wrist does not make a detected person disappear. Occluded action, overlapping bodies, small people or another person in the frame can still prevent useful analysis. The model reports a possible interaction; it does not identify which person initiated it or establish contact or intent.
 
 Live-only mode does not save incidents or video clips and does not schedule calls. The [verification report](SAFETY_EVALUATION.md) distinguishes generated/mock checks from unmeasured human accuracy.

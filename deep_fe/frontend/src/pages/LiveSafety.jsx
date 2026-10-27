@@ -94,7 +94,7 @@ export default function LiveSafety() {
       </div></div>
       <div role="status" aria-live="polite" className={`flex flex-wrap items-center justify-between gap-2 border-t p-4 ${detected ? 'border-red-900 bg-red-950/60 text-red-200' : 'border-zinc-800 text-zinc-300'}`}>
         <div><p className="font-semibold">{message}</p>{paused && <p className="mt-1 text-xs text-zinc-400">{current?.reason?.replaceAll('re-arm', 'resume detection') || 'Click Resume detection to continue.'}</p>}{session.armed && isFresh && tracks.length < 2 ? <p className="mt-1 text-xs text-zinc-400">Move farther back so both people fit in the camera frame. Keep both shoulders, elbows and wrists visible.</p> : session.armed && isFresh && current?.tracking !== 'observed' && <p className="mt-1 text-xs text-zinc-400">{current?.reason}</p>}</div>
-        <span className="text-xs text-zinc-400">{tracks.length} {tracks.length === 1 ? 'person' : 'people'} tracked{session.armed && isFresh ? ` · ${session.inferenceFps.toFixed(0)} FPS` : ''}</span>
+        <span className="text-xs text-zinc-400">{tracks.length} {tracks.length === 1 ? 'person' : 'people'} tracked{session.camera && session.previewFps > 0 ? ` · Camera ${session.previewFps.toFixed(0)} FPS` : ''}{session.armed && isFresh ? ` · Tracking ${session.inferenceFps.toFixed(0)} FPS` : ''}</span>
       </div>
     </section>
     <p className="text-xs text-zinc-500">Keep both people’s upper bodies and arms visible. Allow a few seconds of clear video for detection to warm up.</p>

@@ -9,8 +9,8 @@ async function tabTo(page, target) {
   await expect(target).toBeFocused();
 }
 
-async function setup(page, model = 'test-model') {
-  const calls = [], frames = [], sockets = [];
+async function setup(page, model = 'test-model', { holdResponses = false } = {}) {
+  const calls = [], frames = [], sockets = [], pendingResults = [];
   let evidence = { state: 'monitoring', people: 0, tracks: [], tracking: 'insufficient_evidence' };
   await page.addInitScript(() => {
     window.testStreams = [];
@@ -37,20 +37,36 @@ async function setup(page, model = 'test-model') {
       if (message.capability) socket.send(JSON.stringify({ type: 'connected', state: 'disarmed' }));
       else if (message.jpeg) {
         frames.push(message);
-        socket.send(JSON.stringify({ v: 1, frame_id: message.frame_id, captured_ms: message.captured_ms,
-          frame_age_ms: 20, generation: 1, ...evidence }));
+        const response = JSON.stringify({ v: 1, frame_id: message.frame_id, captured_ms: message.captured_ms,
+          frame_age_ms: 20, generation: 1, ...evidence });
+        if (holdResponses) pendingResults.push({ socket, response });
+        else socket.send(response);
       }
     });
   });
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Start camera' })).toBeEnabled();
-  return { calls, frames, sockets, setEvidence: value => { evidence = value; } };
+  return { calls, frames, sockets, setEvidence: value => { evidence = value; },
+    releaseNext: () => { const next = pendingResults.shift(); next.socket.send(next.response); } };
 }
 
 const pair = [
   { id: 1, box: [.1, .15, .4, .9], points: Array.from({ length: 17 }, (_, i) => [.15 + (i % 2) * .2, .2 + i * .025, .95]) },
   { id: 2, box: [.6, .15, .9, .9], points: Array.from({ length: 17 }, (_, i) => [.65 + (i % 2) * .2, .2 + i * .025, .95]) },
 ];
+
+test('slow tracking keeps the camera playing without queuing stale frames', async ({ page }) => {
+  const { frames, releaseNext } = await setup(page, 'test-model', { holdResponses: true });
+  await page.getByRole('button', { name: 'Start camera' }).click();
+  await expect.poll(() => frames.length).toBe(1);
+  const before = await page.locator('video').evaluate(video => video.currentTime);
+  await page.waitForTimeout(250);
+  expect(frames).toHaveLength(1);
+  expect(await page.locator('video').evaluate(video => video.currentTime)).toBeGreaterThan(before);
+  releaseNext();
+  await expect.poll(() => frames.length).toBe(2);
+  await page.getByRole('button', { name: 'Stop', exact: true }).click();
+});
 
 async function stopped(page) {
   await expect.poll(() => page.evaluate(() => window.testStreams.flatMap(s => s.getTracks()).every(t => t.readyState === 'ended'))).toBe(true);
