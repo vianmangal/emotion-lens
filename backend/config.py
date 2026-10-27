@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     SAFETY_VISUAL_HEAD_PATH: str = ''
     SAFETY_VISUAL_HEAD_SHA256: str = ''
     SAFETY_VISUAL_SYNCHRONOUS: bool = False
+    SAFETY_VISUAL_OPTIMIZE_CPU: bool = False
     SAFETY_PERSON_PATH: str = ''
     SAFETY_PERSON_SHA256: str = ''
     SAFETY_CALL_MODE: str = 'off'

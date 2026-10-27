@@ -13,7 +13,8 @@ import uvicorn
 
 
 def hosted_settings(config=None):
-    config = config if config is not None else model_settings('visual')
+    config = config if config is not None else model_settings('visual').model_copy(
+        update={'SAFETY_VISUAL_OPTIMIZE_CPU': True})
     origins = config.CORS_ALLOW_ORIGINS
     if not origins or any(urlparse(origin).scheme != 'https' or not urlparse(origin).hostname
                           or urlparse(origin).hostname not in config.ALLOWED_HOSTS for origin in origins):

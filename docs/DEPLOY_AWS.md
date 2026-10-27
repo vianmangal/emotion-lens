@@ -16,6 +16,8 @@ This deployment is a single-camera personal demo, not a multi-user monitoring se
 
 CPU inference and network round-trip time affect tracking throughput and alert latency. The UI requests a 30 FPS native preview and targets 20 tracking updates/s, with at most two outstanding frames to overlap network round trips. The RGB model retains its trained 10 FPS history and approximately three-second window. These targets are not guaranteed cloud performance or accuracy.
 
+The hosted runner enables fixed-shape TorchScript CPU inference fusion for the S3D feature extractor. Weights and FP32 precision remain unchanged. On this CPU, an isolated generated-input check reduced warm feature inference from about 0.60 seconds to 0.40–0.42 seconds, with maximum feature difference `4.53e-6` and `allclose(atol=1e-5, rtol=1e-4)`. This is numerical/performance verification, not action-accuracy validation. The normal local runner keeps its existing eager execution by default.
+
 ## Build and update
 
 `deploy/aws/bootstrap.sh` installs the base runtime on a fresh host. `deploy/aws/install-release.sh BUCKET RELEASE_ID PARAMETER REGION` installs a release through SSM. It requires a unique release directory, installs CPU Torch wheels before the pinned hosted requirements, verifies deployment health, and switches the `current` link. Keep dependency installation and service updates serialized on this single host.

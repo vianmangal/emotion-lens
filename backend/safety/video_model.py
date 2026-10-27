@@ -46,7 +46,7 @@ class StrikeHead:
 
 
 class S3DEncoder:
-    def __init__(self, weights):
+    def __init__(self, weights, optimize_cpu=False):
         # Optional runtime only. Model files must already exist and be verified
         # by Detector; startup never downloads a model or imports expression AI.
         import torch
@@ -56,12 +56,24 @@ class S3DEncoder:
         self.model = s3d(weights=None).eval()
         self.model.load_state_dict(torch.load(weights, map_location='cpu', weights_only=True))
         self.transform = S3D_Weights.KINETICS400_V1.transforms()
+        self.features = self.model.features
+        if optimize_cpu:
+            # The hosted input shape is fixed. Fuse inference-only convolution,
+            # batch-normalization and activation operations without changing
+            # weights, precision, sampling or decision thresholds.
+            with torch.inference_mode():
+                example = torch.zeros((1, 3, 32, 224, 224))
+                traced = torch.jit.trace(self.model.features, example, check_trace=False)
+                self.features = torch.jit.optimize_for_inference(torch.jit.freeze(traced))
 
     def __call__(self, frames):
         video = self.torch.from_numpy(frames).permute(0, 3, 1, 2)
         batch = self.transform(video).unsqueeze(0)
         with self.torch.inference_mode():
-            encoded = self.model.avgpool(self.model.features(batch)).mean(dim=(2, 3, 4))
+            features = self.features(batch)
+            if features.is_mkldnn:
+                features = features.to_dense()
+            encoded = self.model.avgpool(features).mean(dim=(2, 3, 4))
         return encoded[0].numpy()
 
 

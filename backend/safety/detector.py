@@ -40,7 +40,8 @@ class Detector:
                 verify_artifact(config.SAFETY_VISUAL_WEIGHTS_PATH, config.SAFETY_VISUAL_WEIGHTS_SHA256)
                 verify_artifact(config.SAFETY_VISUAL_HEAD_PATH, config.SAFETY_VISUAL_HEAD_SHA256)
                 head = StrikeHead(config.SAFETY_VISUAL_HEAD_PATH)
-                self.temporal = VideoAction(S3DEncoder(config.SAFETY_VISUAL_WEIGHTS_PATH), head,
+                self.temporal = VideoAction(S3DEncoder(config.SAFETY_VISUAL_WEIGHTS_PATH,
+                                                      optimize_cpu=config.SAFETY_VISUAL_OPTIMIZE_CPU), head,
                                             synchronous=config.SAFETY_VISUAL_SYNCHRONOUS)
                 self.temporal.version = (f'learned-video-s3d-strike-v1-{config.SAFETY_VISUAL_HEAD_SHA256[:8]}-'
                                          f'{config.SAFETY_PERSON_SHA256[:8]} (experimental)')
