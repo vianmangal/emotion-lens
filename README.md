@@ -1,6 +1,6 @@
 # EmotionLens
 
-> Hosted demo decommissioned on 2026-10-28 at the owner’s request. The demo server, cloud disk, public IP, S3 backups and remote configuration were deleted. The rented Sarvam caller number was permanently deleted. Local project files remain; automatic calls are disabled.
+> Hosted demo restoration requested on 2026-10-29 after the 2026-10-28 shutdown. The latest app is live at https://cnn.vian1.tech. Phone calls remain disabled; the previously deleted Sarvam caller number has not been replaced.
 
 A demo app for **live two-person tracking and possible-hit detection**, with optional facial-expression analysis for images and webcam snapshots.
 
@@ -60,9 +60,9 @@ On-screen hit alerts use the normal 300 ms confirmation; enabling calls does not
 
 ## Hosted demo
 
-The former deployment at `cnn.vian1.tech` was decommissioned on 2026-10-28. AWS compute, storage, public IP, backups and remote configuration were deleted, and the Sarvam caller number was released. No hosted demo is currently running. Local use does not require paid hosting.
+The demo was restored at **https://cnn.vian1.tech** on AWS in Mumbai. It opens without a login and supports one active camera session. Browser video frames are transmitted over HTTPS/WebSocket for server inference; the native camera preview stays local. Paid phone calls remain disabled.
 
-[DEPLOY_AWS.md](docs/DEPLOY_AWS.md) preserves the deployment architecture and shutdown status. GitHub Actions runs checks only; pushing code does not provision or restart services.
+The previous deployment was fully removed on 2026-10-28. [DEPLOY_AWS.md](docs/DEPLOY_AWS.md) records the replacement and retained architecture. GitHub Actions runs checks only; deployments are performed separately.
 
 ## More information
 
