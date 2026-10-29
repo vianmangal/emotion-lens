@@ -1,8 +1,8 @@
-# AWS demo deployment
+# AWS demo deployment (offline)
 
-The owner requested a full shutdown on 2026-10-28, then requested restoration on 2026-10-29. Restoration was verified over HTTPS, a prerecorded video stream and the image-prediction API. The replacement uses the latest app release, a new EC2 server, disk and public IP, and a recreated private release bucket and SSM configuration. Calling remains disabled; no replacement Sarvam number has been rented. Local project files and models remain available.
+The owner requested a full shutdown on 2026-10-28, restoration on 2026-10-29, then another full shutdown on 2026-10-30. The replacement EC2 server was terminated and its EBS disk, Elastic IP, private S3 bucket and SSM runtime configuration were deleted. No active demo instances, disks, IP allocations, release buckets, configuration parameters, CloudFront distributions or demo log groups remained in the shutdown checks. No local demo server was listening. Phone calls are off, and the deleted Sarvam caller number was never replaced. Local project files and GitHub code remain available.
 
-The following table records the completed 2026-10-28 shutdown of the former resources:
+The following table records the final state after the 2026-10-30 shutdown (the original deployment was also removed on 2026-10-28):
 
 | Resource | Verified shutdown state |
 | --- | --- |
@@ -14,13 +14,13 @@ The following table records the completed 2026-10-28 shutdown of the former reso
 | Sarvam caller number | Permanently deleted; zero numbers, inbound deployments or outbound campaigns |
 | Local calling | `SAFETY_CALL_MODE=off`, `SAFETY_DEMO_AUTO_CALLS=false`; caller number cleared |
 
-GitHub Actions runs tests and builds only. Pushing source does not recreate infrastructure, rent a phone number or restart calling. The scripts below install releases on the separately provisioned host.
+GitHub Actions runs tests and builds only. Pushing source does not recreate infrastructure, rent a phone number or restart calling. The scripts below are retained for a future explicitly requested deployment; no host remains provisioned.
 
 ## Deployment architecture
 
-The restored `cnn.vian1.tech` deployment uses one Ubuntu 24.04 EC2 `c7i.xlarge` in `ap-south-1`, with an encrypted 20 GiB gp3 disk and a fixed public IPv4 address. Caddy served the production Vite build and terminated HTTPS, proxying the API and WebSocket to loopback port 8000. Only ports 80 and 443 were public; administration used AWS Systems Manager.
+The retired `cnn.vian1.tech` deployment used one Ubuntu 24.04 EC2 `c7i.xlarge` in `ap-south-1`, with an encrypted 20 GiB gp3 disk and a fixed public IPv4 address. Caddy served the production Vite build and terminated HTTPS, proxying the API and WebSocket to loopback port 8000. Only ports 80 and 443 were public; administration used AWS Systems Manager.
 
-Releases live under `/opt/emotionlens/releases/`, selected by `/opt/emotionlens/current`. Models, SQLite and runtime data live separately under `/var/lib/emotionlens`. A private encrypted S3 bucket supplies releases; an SSM SecureString supplies runtime configuration as root-only systemd configuration. The original resources were removed; replacement resources now use the same layout.
+Releases live under `/opt/emotionlens/releases/`, selected by `/opt/emotionlens/current`. Models, SQLite and runtime data live separately under `/var/lib/emotionlens`. A private encrypted S3 bucket supplies releases; an SSM SecureString supplies runtime configuration as root-only systemd configuration. Both the original and replacement cloud resources have been removed.
 
 Caddy rejects public `/safety/phone/*` and `/safety/events*` routes. Global manual call tests remain administration-only. Owner session status and cancellation use the session capability and `X-Safety-Owner` header. Never include credentials in browser bundles, URLs, archives or logs.
 
@@ -55,4 +55,4 @@ For a future configured host, verify local `/health`, HTTPS, model loading, publ
 
 The frontend, valid HTTPS certificate, persistence and both detection models were checked on the replacement host. A prerecorded public development clip produced two tracked people and one possible-hit alert without a timestamp pause, including an injected 650 ms HTTP-arm delay. This is deployment regression evidence, not new webcam accuracy measurement. A public sample image also completed expression prediction. Global phone/event routes returned HTTP 403, and the server reported no configured phone provider or automatic calls.
 
-The initial HTTPS certificate was issued with DNS validation because certificate-authority resolvers still cached the retired server address. It was imported into Caddy’s managed certificate storage; Caddy retains automatic certificate renewal. The temporary Certbot renewal timer is disabled. The DNS validation TXT record remains in place and contains no private key.
+The initial HTTPS certificate was issued with DNS validation because certificate-authority resolvers still cached the retired server address. It was imported into Caddy’s managed certificate storage; Caddy retained automatic certificate renewal until the server was terminated on 2026-10-30. The temporary Certbot renewal timer is disabled. The DNS validation TXT record remains in place and contains no private key.
