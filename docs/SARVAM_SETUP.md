@@ -1,6 +1,8 @@
 # Sarvam demo calling
 
-The live camera view stays focused on tracking and detection. It does not schedule phone calls. The existing operator-requested phone test API can use Sarvam hosted Voice Agents instead of ElevenLabs/Twilio.
+> Shutdown verified on 2026-10-28: the demo caller number was archived and permanently deleted with owner confirmation. Sarvam showed zero numbers, no inbound deployments and no outbound campaigns. Local calling is disabled and the released caller-number setting is cleared.
+
+Calling is disabled by default and the demo no longer has a rented caller number. The optional Live Safety phone alerts and operator-requested phone test API support Sarvam hosted Voice Agents instead of ElevenLabs/Twilio. The setup below is retained for a future deliberately configured installation; it does not describe an active service.
 
 ## Account setup
 
@@ -27,7 +29,9 @@ Both phone numbers use E.164 format, including `+` and country code. `SARVAM_AGE
 
 `POST /safety/phone/test` retains its local capability requirement, recipient/charge acknowledgement, cancelable countdown, cooldown and three-attempt hourly limit. Use a fresh request ID for a deliberately requested test. `dry_run` never contacts either provider. A `real` test must be explicitly requested by the operator and sets `recipient_acknowledged: true`. Call messages distinguish an operator test from a possible motion alert.
 
-The adapter uses Sarvam's **Instant Outbound** API with a per-call `initial_bot_message` override and records the returned `attempt_id`. `submitted` means Sarvam accepted the request; it does not prove the recipient answered or heard the message. Unknown responses, redirects and network failures are never automatically retried. The existing real automatic-call qualification gate remains in place.
+The adapter uses Sarvam's **Instant Outbound** API with a per-call `initial_bot_message` override and records the returned `attempt_id`. `submitted` means Sarvam accepted the request; it does not prove the recipient answered or heard the message. Unknown responses, redirects and network failures are never automatically retried.
+
+Owner-requested automatic alerts require `SAFETY_CALL_MODE=real` and a private `SAFETY_CALL_OWNER_KEY`, plus the configured Sarvam credentials and recipient. Enter the owner code in Live Safety before starting the camera. 1.5 seconds of sustained positive detection starts a two-second cancellation countdown. Optional `SAFETY_DEMO_AUTO_CALLS=true` bypasses the owner-code form and arms calls with Start camera only when real mode and a provider are configured; keep it false for normal local use. The detector remains experimental; owner activation is separate from model qualification. See the README for cancellation behavior and call limits.
 
 Sarvam's outbound API has no documented per-call recording-disable flag. Recording/transcript retention must be checked in the Sarvam workspace; this integration does not claim to disable provider recording. No video frames or poses are sent to Sarvam.
 

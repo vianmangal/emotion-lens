@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import useSafetySession from '../hooks/useSafetySession';
 import { safetyRequest } from '../api/safety';
 import LiveAccuracyTest from '../components/safety/LiveAccuracyTest';
+import PhoneAlerts from '../components/safety/PhoneAlerts';
 
 const DETECTION_OPTIONS = { phone_mode: 'off', clips: false };
+const MAX_VIDEO_AGE_MS = 1000;
+const captureAge = result => Number.isFinite(result?.captured_ms)
+  ? Math.max(0, performance.now() - result.captured_ms)
+  : Infinity;
 const BONES = [[0, 1], [0, 2], [1, 3], [2, 4], [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [5, 11], [6, 12], [11, 12], [11, 13], [13, 15], [12, 14], [14, 16]];
 
 export default function LiveSafety() {
@@ -11,7 +16,14 @@ export default function LiveSafety() {
   const [status, setStatus] = useState(null), [error, setError] = useState('');
   const [device, setDevice] = useState(''), [busy, setBusy] = useState(false);
   const [fresh, setFresh] = useState(false);
+  const [overlayFresh, setOverlayFresh] = useState(false);
   const [testCue, setTestCue] = useState(null);
+  const [ownerKey, setOwnerKey] = useState('');
+  const [demoCallsDisabled, setDemoCallsDisabled] = useState(false);
+  const callsEnabled = Boolean(ownerKey || (status?.demo_auto_calls && !demoCallsDisabled));
+  const detectionOptions = callsEnabled ? { phone_mode: 'real', clips: false, recipient_acknowledged: true } : DETECTION_OPTIONS;
+  const recoverablePause = Boolean(status?.demo_auto_calls && session.camera && !session.armed &&
+    /stale|inconsistent capture|capture clock|frame gap|fresh frames stopped|fresh inference stopped/i.test(session.result?.reason || ''));
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -24,31 +36,43 @@ export default function LiveSafety() {
     return () => { mounted = false; clearInterval(timer); };
   }, []);
   useEffect(() => {
-    setFresh(true); const timer = setTimeout(() => setFresh(false), 500);
-    return () => clearTimeout(timer);
-  }, [session.result]);
+    const age = captureAge(session.result);
+    const remaining = MAX_VIDEO_AGE_MS - age;
+    const overlayRemaining = (status?.demo_auto_calls ? 2000 : MAX_VIDEO_AGE_MS) - age;
+    setFresh(remaining > 0);
+    setOverlayFresh(overlayRemaining > 0);
+    const timer = setTimeout(() => setFresh(false), Math.max(0, remaining));
+    const overlayTimer = setTimeout(() => setOverlayFresh(false), Math.max(0, overlayRemaining));
+    return () => { clearTimeout(timer); clearTimeout(overlayTimer); };
+  }, [session.result, status?.demo_auto_calls]);
 
   const start = async () => {
     setBusy(true);
-    try { if (await session.start(device)) await session.arm(DETECTION_OPTIONS); }
+    try { if (await session.start(device, !callsEnabled, Boolean(status?.demo_auto_calls))) await session.arm(detectionOptions, ownerKey); }
     finally { setBusy(false); }
   };
   const resume = async () => {
     setBusy(true);
-    try { await session.arm(DETECTION_OPTIONS); }
+    try { await session.arm(detectionOptions, ownerKey); }
     finally { setBusy(false); }
   };
+  useEffect(() => {
+    if (!recoverablePause || busy || document.hidden) return;
+    const timer = setTimeout(() => { if (!document.hidden) resume(); }, 500);
+    return () => clearTimeout(timer);
+  }, [recoverablePause, busy, session.result?.reason, callsEnabled, ownerKey]);
   const current = session.result;
-  const isFresh = session.armed && fresh && current?.frame_age_ms < 500;
-  const tracks = isFresh ? current.tracks || [] : [];
+  const isFresh = session.armed && fresh && captureAge(current) < MAX_VIDEO_AGE_MS;
+  const showTracking = session.armed && overlayFresh && captureAge(current) < (status?.demo_auto_calls ? 2000 : MAX_VIDEO_AGE_MS);
+  const tracks = showTracking ? current.tracks || [] : [];
   const detected = isFresh && tracks.length >= 2 && current.tracking === 'observed' && current.state === 'alert_active';
   const paused = session.camera && !session.armed && !busy;
   let message = 'Camera off';
   if (busy || session.starting) message = 'Starting detection…';
-  else if (paused) message = 'Detection paused';
-  else if (session.armed && !isFresh) message = 'Waiting for fresh video…';
+  else if (paused) message = recoverablePause ? 'Recovering video…' : 'Detection paused';
+  else if (session.armed && !isFresh) message = showTracking ? 'Video delayed; showing latest tracking…' : 'Waiting for fresh video…';
   else if (session.armed && tracks.length < 2) message = tracks.length === 1 ? 'Only one person tracked' : 'Waiting for two people';
-  else if (session.armed && current.tracking !== 'observed') message = 'Getting a clear view…';
+  else if (session.armed && current.tracking !== 'observed') message = current.reason?.startsWith('Warming up action analysis') ? 'Warming up action analysis…' : current.reason?.startsWith('Video arriving too slowly') ? 'Video connection too slow' : current.reason?.startsWith('Waiting for fresh action analysis') ? 'Analyzing movement…' : 'Getting a clear view…';
   else if (detected) message = '⚠ Possible hit detected';
   else if (session.armed && current.state === 'candidate') message = 'Checking movement…';
   else if (session.armed) message = 'No hitting motion detected';
@@ -98,7 +122,12 @@ export default function LiveSafety() {
       </div>
     </section>
     <p className="text-xs text-zinc-500">Keep both people’s upper bodies and arms visible. Allow a few seconds of clear video for detection to warm up.</p>
-    {!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) && <p className="text-xs text-zinc-500">Camera frames are sent securely to the demo server for processing. Live Safety does not save video or place calls.</p>}
-    <LiveAccuracyTest armed={session.armed} result={current} status={status} onCue={setTestCue} />
+    {!['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) && <p className="text-xs text-zinc-500">Camera frames are sent securely to the demo server for processing. Video is not saved. {status?.demo_auto_calls ? 'Demo phone alerts activate when the camera starts.' : 'Calls require owner access and explicit activation.'}</p>}
+    <PhoneAlerts status={status} ownerKey={ownerKey} enabled={callsEnabled}
+      onEnable={key => { setOwnerKey(key); setDemoCallsDisabled(false); }}
+      onDisable={async () => { await session.stop(); setOwnerKey(''); setDemoCallsDisabled(true); }}
+      session={session.activeSession} armed={session.armed} locked={session.camera || session.starting || busy}
+      result={current} onUnavailable={session.disarm} />
+    {!callsEnabled && <LiveAccuracyTest armed={session.armed} result={current} status={status} onCue={setTestCue} />}
   </div>;
 }

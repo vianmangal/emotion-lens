@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     SAFETY_PERSON_PATH: str = ''
     SAFETY_PERSON_SHA256: str = ''
     SAFETY_CALL_MODE: str = 'off'
+    SAFETY_DEMO_AUTO_CALLS: bool = False
+    SAFETY_CALL_OWNER_KEY: SecretStr = SecretStr('')
+    SAFETY_CALL_TRIGGER_SECONDS: float = Field(1.5, ge=.5, le=10, allow_inf_nan=False)
     SAFETY_CALL_PROVIDER: Literal['elevenlabs', 'sarvam'] = 'elevenlabs'
     ELEVENLABS_API_KEY: SecretStr = SecretStr('')
     ELEVENLABS_AGENT_ID: str = ''
@@ -40,7 +43,7 @@ class Settings(BaseSettings):
     SARVAM_CONNECTION_ID: str = ''
     SARVAM_AGENT_PHONE_NUMBER: SecretStr = SecretStr('')
     SAFETY_ALERT_TO_NUMBER: SecretStr = SecretStr('')
-    SAFETY_CALL_GRACE_SECONDS: float = Field(10, ge=1, le=60)
+    SAFETY_CALL_GRACE_SECONDS: float = Field(2, ge=1, le=60)
     SAFETY_CALL_COOLDOWN_SECONDS: float = Field(300, ge=1)
     SAFETY_CALL_MAX_PER_HOUR: int = Field(3, ge=1, le=3)
     SAFETY_CLIP_QUOTA_MB: int = Field(500, ge=1, le=5000)

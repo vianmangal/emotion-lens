@@ -25,8 +25,10 @@ class Session:
     created_monotonic: float = field(default_factory=time.monotonic)
     expires: float = field(default_factory=lambda: time.monotonic() + 3600)
     policy: EventPolicy = field(default_factory=EventPolicy)
+    call_policy: EventPolicy = field(default_factory=EventPolicy)
     connected: bool = False
     phone_mode: str = 'off'
+    phone_authorized: bool = False
     clips: bool = False
     last_frame: float = 0
     last_capture: float = -1
@@ -105,6 +107,16 @@ class Runtime:
         await self.work(self.detector.close)
         self.executor.shutdown(wait=True)
 
+    def automatic_calls_available(self):
+        return bool(self.config.SAFETY_CALL_MODE == 'real'
+                    and (self.config.SAFETY_DEMO_AUTO_CALLS or self.config.SAFETY_CALL_OWNER_KEY.get_secret_value())
+                    and configured(self.config) and self.persistence_ready)
+
+    def policy_options(self, session=None):
+        if session is None:
+            return self.config.event_policy_options()
+        return {key: getattr(session.policy, key) for key in self.config.event_policy_options()}
+
     def status(self):
         s = self.session
         return {'v': 1, 'ready': self.detector.ready, 'qualified': self.detector.qualified,
@@ -115,9 +127,25 @@ class Runtime:
                 'persistence_ready': self.persistence_ready,
                 'clip_retention_hours': self.config.SAFETY_CLIP_RETENTION_HOURS,
                 'metadata_retention_days': self.config.SAFETY_METADATA_RETENTION_DAYS, 'phone_configured': configured(self.config),
-                'event_policy': self.config.event_policy_options(),
-                'threshold_version': threshold_version(self.config.event_policy_options()),
-                'recipient': masked_recipient(self.config), 'phone_provider': provider_label(self.config), 'real_auto_calls_available': False,
+                'event_policy': self.policy_options(s),
+                'threshold_version': threshold_version(self.policy_options(s)),
+                'recipient': masked_recipient(self.config), 'phone_provider': provider_label(self.config),
+                'real_auto_calls_available': self.automatic_calls_available(),
+                'demo_auto_calls': self.config.SAFETY_DEMO_AUTO_CALLS and self.automatic_calls_available(),
+                'call_trigger_seconds': self.config.SAFETY_CALL_TRIGGER_SECONDS,
+                'call_cooldown_seconds': self.config.SAFETY_CALL_COOLDOWN_SECONDS,
+                'call_max_per_hour': self.config.SAFETY_CALL_MAX_PER_HOUR,
+                'live_diagnostics': {
+                    'reason': s.reason,
+                    'phone_mode': s.phone_mode,
+                    'call_state': s.call_policy.state,
+                    'call_candidate_seconds': max(0, s.policy.last_t - s.call_policy.candidate_since)
+                        if s.policy.last_t is not None and s.call_policy.candidate_since is not None else 0,
+                    'people': s.last_evidence.people if s.last_evidence else 0,
+                    'action_ready': bool(s.last_evidence and s.last_evidence.ready),
+                    'score': s.last_evidence.score if s.last_evidence and s.last_evidence.ready else None,
+                    'video': self.detector.temporal.diagnostics() if hasattr(self.detector.temporal, 'diagnostics') else None,
+                } if s else None,
                 'real_test_available': configured(self.config) and self.persistence_ready, 'call_grace_seconds': self.config.SAFETY_CALL_GRACE_SECONDS}
 
     async def create(self, source, live_only=False):
@@ -146,7 +174,9 @@ class Runtime:
             return
         s.generation += 1
         s.policy.disarm()
+        s.call_policy.disarm()
         s.phone_mode = 'off'
+        s.phone_authorized = False
         s.last_evidence = None
         s.reason = reason
         s.buffer.clear()
@@ -180,14 +210,14 @@ class Runtime:
             s.connected = False
             self.session = None
 
-    async def arm(self, options, expected_session=None):
+    async def arm(self, options, expected_session=None, owner_authorized=False):
         received_at = time.monotonic()
         async with self.control_lock:
             if expected_session is not None and self.session is not expected_session:
                 raise ValueError('Session changed; start and arm the current camera explicitly')
-            await self._arm(options, received_at)
+            await self._arm(options, received_at, owner_authorized)
 
-    async def _arm(self, options, received_at):
+    async def _arm(self, options, received_at, owner_authorized=False):
         s = self.session
         if not s or not s.connected:
             raise ValueError('Start the camera stream first')
@@ -196,7 +226,10 @@ class Runtime:
         if s.live_only and (options.phone_mode != 'off' or options.clips):
             raise ValueError('Live-only sessions support tracking and detection without clips or phone actions')
         if options.phone_mode == 'real':
-            raise ValueError('Automatic real calls are locked: detector qualification is unmet. Use dry run or an explicit phone test.')
+            if not owner_authorized or not options.recipient_acknowledged:
+                raise ValueError('Unlock owner phone alerts and acknowledge the configured recipient before enabling calls')
+            if s.source != 'live' or not self.automatic_calls_available():
+                raise ValueError('Automatic calls require a live session and enabled, configured owner calling')
         if options.client_now_ms is None:
             raise ValueError('A fresh client monotonic timestamp is required when arming; reload the local UI')
         if options.clips and not self.store.available:
@@ -206,7 +239,15 @@ class Runtime:
         await self._disarm()
         s.last_frame = time.monotonic()
         s.phone_mode, s.clips = options.phone_mode, options.clips
+        s.phone_authorized = options.phone_mode == 'real' and owner_authorized
+        policy_options = self.config.event_policy_options()
+        if s.live_only or s.phone_mode == 'real':
+            policy_options['cooldown'] = 0
+        s.policy = EventPolicy(**policy_options)
         s.policy.arm()
+        s.call_policy = EventPolicy(**{**policy_options, 'entry_seconds': self.config.SAFETY_CALL_TRIGGER_SECONDS})
+        if s.phone_mode == 'real':
+            s.call_policy.arm()
         s.reason = 'Warming temporal window'
         s.last_capture = -1
         s.last_evidence = None
@@ -216,7 +257,7 @@ class Runtime:
         s = self.session
         if not (self.persistence_ready and s and not s.live_only and event and event.session_id == s.id and s.connected and s.policy.armed and s.source == 'live' and s.phone_mode == mode and time.monotonic() - s.last_frame < 1 and time.monotonic() - s.evidence_at < 1 and s.last_evidence and s.last_evidence.ready and s.last_evidence.people >= 2):
             return False
-        return mode == 'dry_run' or self.detector.qualified
+        return mode == 'dry_run' or (mode == 'real' and s.phone_authorized and self.automatic_calls_available())
 
     def finalize(self, s, partial=False):
         if s.recording_id:
@@ -244,11 +285,12 @@ class Runtime:
         generation = s.generation
         if s is not self.session or not s.policy.armed:
             return {'v': 1, 'state': 'disarmed', 'reason': s.reason}
-        if was_dropped:
+        if was_dropped and (s.last_capture < 0 or message.captured_ms / 1000 - s.last_capture > .5):
             await self.work(self.detector.reset)
             if s is not self.session or s.generation != generation or not s.policy.armed:
                 return {'v': 1, 'state': 'disarmed', 'reason': s.reason}
             s.policy.invalidate()
+            s.call_policy.invalidate()
             s.last_evidence = None
             await self.cancel_automatic(s, 'Dropped frames invalidated temporal history')
         now = time.monotonic()
@@ -256,6 +298,11 @@ class Runtime:
         if s.clock_offset is None:
             await self.disarm('Capture clock unavailable; explicitly re-arm', expected_session=s)
             return {'v': 1, 'state': 'unavailable', 'reason': s.reason}
+        # The arm request and video use different connections. A slow HTTP
+        # request must not make a faster WebSocket frame appear to come from
+        # the future. Only lower the offset to the fastest observed arrival;
+        # delayed frames can never move it up and renew stale evidence.
+        s.clock_offset = min(s.clock_offset, received_at - t)
         age = now - t - s.clock_offset
         if age > 1 or age < -.15 or now - received_at > 1:
             await self.disarm('Stale or inconsistent capture timestamps; explicitly re-arm', expected_session=s)
@@ -281,9 +328,10 @@ class Runtime:
             return {'v': 1, 'state': 'unavailable', 'reason': s.reason}
         s.last_evidence = evidence
         s.evidence_at = time.monotonic()
-        if not evidence.ready:
+        if not evidence.ready or evidence.people < 2:
             await self.cancel_automatic(s, 'Insufficient fresh evidence')
         created, ended = s.policy.step(t, evidence)
+        call_created, _ = s.call_policy.step(t, evidence)
         if s.clips:
             s.buffer.append(t, raw)
             if s.recording_id and len(s.recording) < 120 and s.recording_bytes + len(raw) <= 24 * 1024 * 1024:
@@ -298,7 +346,7 @@ class Runtime:
             try:
                 async with self.factory() as db:
                     db.add(Incident(id=event_id, session_id=s.id, captured_at=t, model_version=self.detector.temporal.version,
-                                    threshold_version=threshold_version(self.config.event_policy_options()),
+                                    threshold_version=threshold_version(self.policy_options(s)),
                                     score=evidence.score, reasons=list(evidence.reasons), track_ids=list(evidence.track_ids) or [p['id'] for p in tracks], source=s.source,
                                     clip_status='buffering' if s.clips else 'off'))
                     await db.commit()
@@ -315,7 +363,7 @@ class Runtime:
                 s.recording_until = t + 5
                 s.recording_trigger = t
                 s.recording_truncated = False
-            if s.source == 'live':
+            if s.source == 'live' and s.phone_mode != 'real':
                 try:
                     await self.dispatcher.enqueue(s.phone_mode, event_id=event_id)
                 except SQLAlchemyError:
@@ -334,12 +382,19 @@ class Runtime:
                 self.storage_failed('Incident update failed; local alert remains active. Check local disk.')
             if ended:
                 s.event_id = None
+        if call_created and s.event_id and s.phone_mode == 'real' and s.source == 'live':
+            try:
+                await self.dispatcher.enqueue('real', event_id=s.event_id)
+            except SQLAlchemyError:
+                self.storage_failed('Phone action storage failed; incident remains visible. No call scheduled.')
         s.reason = '; '.join(evidence.reasons) if evidence.reasons else 'No event detected'
         return {'v': 1, 'session_id': s.id, 'frame_id': message.frame_id, 'captured_ms': message.captured_ms,
                 'state': s.policy.state, 'reason': s.reason, 'tracking': 'observed' if evidence.ready else 'insufficient_evidence',
                 'people': len(tracks), 'tracks': tracks, 'score': evidence.score, 'event_id': s.event_id,
                 'interaction_track_ids': list(evidence.track_ids),
                 'new_event': created, 'live_only': s.live_only,
+                'candidate_seconds': max(0, t - s.policy.candidate_since) if s.policy.candidate_since is not None else 0,
+                'call_candidate_seconds': max(0, t - s.call_policy.candidate_since) if s.call_policy.candidate_since is not None else 0,
                 'frame_age_ms': round(age * 1000), 'dropped_frames': s.dropped,
                 'processing_ms': round((time.monotonic() - now) * 1000), 'source': s.source,
                 'storage_warning': self.storage_warning}
@@ -370,7 +425,8 @@ class Runtime:
             s = self.session
             if s and (time.monotonic() > s.expires or (not s.connected and time.monotonic() - s.created_monotonic > 10)):
                 await self.end(expected_session=s)
-            elif s and s.policy.armed and time.monotonic() - s.last_frame > 1:
+            elif s and s.policy.armed and time.monotonic() - s.last_frame > (
+                    (8 if s.last_capture < 0 else 3) if self.config.SAFETY_DEMO_AUTO_CALLS else 1):
                 await self.disarm('Fresh frames stopped; explicitly re-arm', expected_session=s)
             count += 1
             if count % 240 == 0:

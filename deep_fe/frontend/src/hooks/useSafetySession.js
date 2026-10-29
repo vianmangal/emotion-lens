@@ -5,6 +5,7 @@ export default function useSafetySession() {
   const videoRef = useRef(null);
   const resources = useRef({ stream: null, ws: null, session: null, timer: null, videoCallback: null, cancelConnect: null, armed: false, epoch: 0, control: 0, lastResult: 0, inFlight: new Set() });
   const [camera, setCamera] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
   const [starting, setStarting] = useState(false);
   const [armed, setArmed] = useState(false);
   const [result, setResult] = useState(null);
@@ -32,7 +33,7 @@ export default function useSafetySession() {
     r.stream?.getTracks().forEach(track => { track.onended = null; track.stop(); });
     r.stream = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    if (update) { setCamera(false); setStarting(false); setArmed(false); setResult(null); setFps(0); setInferenceFps(0); setPreviewFps(0); }
+    if (update) { setActiveSession(null); setCamera(false); setStarting(false); setArmed(false); setResult(null); setFps(0); setInferenceFps(0); setPreviewFps(0); }
     if (session) {
       try { await safetyRequest(`/sessions/${session.id}`, { method: 'DELETE', session }); } catch { /* Backend disconnect also expires session. */ }
     }
@@ -54,7 +55,7 @@ export default function useSafetySession() {
     }
   }, []);
 
-  const start = useCallback(async deviceId => {
+  const start = useCallback(async (deviceId, liveOnly = true, demoMode = false) => {
     const epoch = await stop();
     const r = resources.current;
     if (r.epoch !== epoch) return false;
@@ -80,9 +81,10 @@ export default function useSafetySession() {
         };
         r.videoCallback = preview.requestVideoFrameCallback(measurePreview);
       }
-      const session = await safetyRequest('/sessions', { method: 'POST', body: { source: 'live', live_only: true } });
+      const session = await safetyRequest('/sessions', { method: 'POST', body: { source: 'live', live_only: liveOnly, ...(demoMode ? { replace_existing: true } : {}) } });
       if (r.epoch !== epoch) { await safetyRequest(`/sessions/${session.id}`, { method: 'DELETE', session }); return false; }
       r.session = session;
+      setActiveSession(session);
       const ws = new WebSocket(streamUrl(session.id));
       r.ws = ws;
       await new Promise((resolve, reject) => {
@@ -119,7 +121,9 @@ export default function useSafetySession() {
           return;
         }
         if (!r.armed || (data.generation !== undefined && data.generation < r.generation)) return;
-        r.inFlight.delete(data.frame_id);
+        // Results are ordered. A newer result also acknowledges older frames
+        // the server replaced while keeping its pending queue bounded.
+        for (const id of r.inFlight) if (id <= data.frame_id) r.inFlight.delete(id);
         inferred += 1;
         r.lastResult = performance.now();
         const age = Number.isFinite(data.captured_ms) ? Math.max(0, performance.now() - data.captured_ms) : data.frame_age_ms;
@@ -136,18 +140,18 @@ export default function useSafetySession() {
           sent = 0; inferred = 0; measuredAt = performance.now();
         }
         if (!r.armed || document.hidden) return;
-        if (performance.now() - r.lastResult > 1500) { disarm('Fresh inference stopped. Explicitly re-arm after recovery.'); return; }
+        if (performance.now() - r.lastResult > (demoMode ? 5000 : 1500)) { disarm('Fresh inference stopped. Explicitly re-arm after recovery.'); return; }
         const now = performance.now();
-        // Two outstanding frames overlap network round trips while bounding
+        // Four outstanding frames overlap variable cloud round trips while bounding
         // server work to one active frame and one pending frame.
         // The native video preview continues independently at camera speed.
-        if (encoding || r.inFlight.size >= 2 || now < nextCapture || !video?.videoWidth || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 512 * 1024) return;
+        if (encoding || r.inFlight.size >= 4 || now < nextCapture || !video?.videoWidth || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 512 * 1024) return;
         if (video.currentTime !== videoTime) { videoTime = video.currentTime; changedAt = performance.now(); }
         else if (performance.now() - changedAt > 1000) { disarm('Camera preview frozen. Stop and restart the camera.'); return; }
         const capturedAt = performance.now();
-        nextCapture = capturedAt + 50; // Target 20 tracking updates/s; never queue to achieve it.
+        nextCapture = capturedAt + (demoMode ? 125 : 50);
         const captureControl = r.control;
-        const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
+        const scale = Math.min((demoMode ? 384 : 640) / video.videoWidth, (demoMode ? 288 : 480) / video.videoHeight, 1);
         canvas.width = Math.round(video.videoWidth * scale);
         canvas.height = Math.round(video.videoHeight * scale);
         setAspect(canvas.width / canvas.height);
@@ -164,7 +168,7 @@ export default function useSafetySession() {
             ws.send(JSON.stringify({ v: 1, session_id: session.id, frame_id: id, captured_ms: capturedAt, jpeg: btoa(binary) }));
             sent += 1;
           } finally { encoding = false; }
-        }, 'image/jpeg', .75);
+        }, 'image/jpeg', demoMode ? .5 : .75);
       }, 10);
       const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
       if (r.epoch !== epoch) return false;
@@ -180,7 +184,7 @@ export default function useSafetySession() {
     }
   }, [stop, disarm]);
 
-  const arm = async options => {
+  const arm = async (options, ownerKey) => {
     setError('');
     const r = resources.current;
     const epoch = r.epoch;
@@ -188,7 +192,7 @@ export default function useSafetySession() {
     const session = r.session;
     try {
       if (!session || document.hidden) throw new Error('Start a visible camera session first.');
-      const response = await safetyRequest(`/sessions/${session.id}/arm`, { method: 'POST', body: { ...options, client_now_ms: performance.now() }, session });
+      const response = await safetyRequest(`/sessions/${session.id}/arm`, { method: 'POST', body: { ...options, client_now_ms: performance.now() }, session, ownerKey });
       if (r.epoch !== epoch || r.control !== control || r.session !== session || document.hidden) {
         // A hide/disarm/stop can overtake this HTTP response. Cancel the old
         // session's arm before returning; never reactivate local capture.
@@ -212,5 +216,5 @@ export default function useSafetySession() {
     navigator.mediaDevices?.enumerateDevices().then(list => setDevices(list.filter(d => d.kind === 'videoinput'))).catch(() => {});
     return () => { document.removeEventListener('visibilitychange', hidden); window.removeEventListener('pagehide', pagehide); stop(false); };
   }, [stop, disarm]);
-  return { videoRef, camera, starting, armed, result, error, devices, aspect, fps, inferenceFps, previewFps, start, stop, arm, disarm };
+  return { videoRef, camera, activeSession, starting, armed, result, error, devices, aspect, fps, inferenceFps, previewFps, start, stop, arm, disarm };
 }

@@ -26,6 +26,21 @@ def authorized(request: Request):
     return rt
 
 
+def owner_authorized(request: Request, rt=Depends(authorized)):
+    if rt.config.SAFETY_DEMO_AUTO_CALLS and rt.automatic_calls_available():
+        return rt
+    key = rt.config.SAFETY_CALL_OWNER_KEY.get_secret_value()
+    supplied = request.headers.get('x-safety-owner', '')
+    if not key or not secrets.compare_digest(supplied.encode(), key.encode()):
+        raise HTTPException(403, 'Owner call access code required')
+    return rt
+
+
+@router.get('/owner/status')
+async def owner_status(rt=Depends(owner_authorized)):
+    return rt.status()
+
+
 def get_session(rt, session_id, capability):
     s = rt.session
     if not s or s.id != session_id:
@@ -53,6 +68,10 @@ async def status(rt=Depends(authorized)):
 @router.post('/sessions', status_code=201)
 async def create_session(options: SessionOptions, rt=Depends(authorized)):
     async with rt.control_lock:
+        if options.replace_existing:
+            if not rt.config.SAFETY_DEMO_AUTO_CALLS:
+                raise HTTPException(409, 'Session replacement is available in demo mode only')
+            await rt._end()
         try:
             s = await rt.create(options.source, live_only=options.live_only)
         except ValueError as exc:
@@ -63,8 +82,12 @@ async def create_session(options: SessionOptions, rt=Depends(authorized)):
 @router.post('/sessions/{session_id}/arm')
 async def arm(session_id: str, options: ArmOptions, request: Request, rt=Depends(authorized)):
     s = get_session(rt, session_id, request.headers.get('x-session-capability', ''))
+    is_owner = False
+    if options.phone_mode == 'real':
+        owner_authorized(request, rt)
+        is_owner = True
     try:
-        await rt.arm(options, expected_session=s)
+        await rt.arm(options, expected_session=s, owner_authorized=is_owner)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
     return {'state': s.policy.state, 'generation': s.generation}
@@ -186,6 +209,23 @@ async def stream(ws: WebSocket, session_id: str):
 def action_json(action):
     return {**{k: getattr(action, k) for k in ('id', 'mode', 'state', 'due_at', 'attempt_at', 'recipient_alias', 'error_category')},
             'preview': action.provider_ids.get('dry_run_payload') if action.mode == 'dry_run' else None}
+
+
+@router.get('/sessions/{session_id}/phone-actions')
+async def session_phone_actions(session_id: str, request: Request, rt=Depends(owner_authorized)):
+    s = get_session(rt, session_id, request.headers.get('x-session-capability', ''))
+    async with rt.factory() as db:
+        rows = (await db.scalars(select(Action).join(Incident, Action.event_id == Incident.id)
+                                .where(Incident.session_id == s.id)
+                                .order_by(Action.created_at.desc()).limit(10))).all()
+        return {'items': [action_json(a) for a in rows], 'server_now': time.time()}
+
+
+@router.post('/sessions/{session_id}/phone-actions/{action_id}/cancel')
+async def cancel_session_phone(session_id: str, action_id: str, request: Request, rt=Depends(owner_authorized)):
+    s = get_session(rt, session_id, request.headers.get('x-session-capability', ''))
+    await rt.dispatcher.cancel(action_id=action_id, session_id=s.id)
+    return {'message': 'Pending call cancelled. Submitted calls cannot be recalled.'}
 
 
 def event_json(event):

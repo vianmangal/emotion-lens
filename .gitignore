@@ -51,9 +51,6 @@ data/
 models/
 .nv
 
-vian1
-Bruno0109
-
 .venv-safety/
 .venv-model/
 .venv-visual/

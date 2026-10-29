@@ -85,6 +85,7 @@ class VideoAction:
     max_score_age_seconds = 1.  # Time since a completed result was published.
     max_source_age_seconds = 2.  # Never revive a result from an old video window.
     sample_fps = 10  # The learned head was trained on 32 frames spanning 3.1s.
+    min_window_samples = 10  # Accept >=3 FPS transport; resample the same 3.1s span.
 
     def __init__(self, encoder, head, synchronous=False):
         self.encoder, self.head = encoder, head
@@ -105,6 +106,7 @@ class VideoAction:
         self.sample_origin = None
         self.sample_bucket = -1
         self.failure = False
+        self.window_info = {'samples': 0, 'span_seconds': 0, 'two_person_coverage': 0, 'max_gap_seconds': 0}
         if self.future is not None:
             self.future.cancel()
 
@@ -120,6 +122,10 @@ class VideoAction:
             raise ValueError('Invalid visual action score')
         elapsed = time.perf_counter() - start
         return generation, captured, score, elapsed
+
+    def diagnostics(self):
+        return {**self.window_info, 'inference_pending': self.future is not None or self.pending is not None,
+                'model_failed': self.failure}
 
     @staticmethod
     def two_bodies(tracks):
@@ -162,9 +168,13 @@ class VideoAction:
             self.pending = None
 
         samples = list(self.frames)
-        ready_window = (len(samples) >= 24 and t - samples[0][0] >= 3.0 and
-                        sum(sample[2] for sample in samples) / len(samples) >= .8 and
-                        all(b[0] - a[0] <= .5 for a, b in zip(samples, samples[1:])))
+        span = t - samples[0][0] if samples else 0
+        coverage = sum(sample[2] for sample in samples) / len(samples) if samples else 0
+        max_gap = max((b[0] - a[0] for a, b in zip(samples, samples[1:])), default=0)
+        self.window_info = {'samples': len(samples), 'span_seconds': round(span, 2),
+                            'two_person_coverage': round(coverage, 2), 'max_gap_seconds': round(max_gap, 2)}
+        ready_window = (len(samples) >= self.min_window_samples and span >= 3.0 and
+                        coverage >= .8 and max_gap <= .5)
         if not self.failure and current_valid and ready_window and t >= self.next_run and self.future is None and self.pending is None:
             times = np.array([sample[0] for sample in samples])
             indices = [int(np.argmin(np.abs(times - wanted))) for wanted in np.linspace(t - 3.1, t, 32)]
@@ -185,7 +195,13 @@ class VideoAction:
             reason = ('Keep exactly two people in the frame' if people != 2 else 'Keep both people’s shoulders in frame')
             return Evidence(False, people=people, reasons=(reason,))
         if not ready_window:
-            return Evidence(False, people=people, reasons=('Building a clear two-person action window…',))
+            if span < 3:
+                reason = f'Warming up action analysis: {span:.1f} / 3.0 seconds'
+            elif len(samples) < self.min_window_samples or max_gap > .5:
+                reason = 'Video arriving too slowly for action analysis; use a faster connection or local camera service'
+            else:
+                reason = f'Keep both people visible together: {coverage:.0%} of recent video, need 80%'
+            return Evidence(False, people=people, reasons=(reason,))
         if (self.prediction is None or
                 not 0 <= t - self.prediction[0] <= self.max_source_age_seconds or
                 not 0 <= t - self.prediction[2] <= self.max_score_age_seconds):

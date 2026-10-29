@@ -204,3 +204,30 @@ def test_numeric_head_matches_explicit_two_layer_network_and_rejects_corruption(
     head['scale'][0] = 0; path.write_text(json.dumps(head))
     with pytest.raises(ValueError, match='normalization'):
         StrikeHead(path)
+
+
+@pytest.mark.parametrize('fps', [3, 4, 5, 6])
+def test_slow_transport_resamples_the_same_three_second_window(fps):
+    model = fake_model()
+    batches = []
+    model.encoder = lambda frames: (batches.append(frames.shape) or np.array([.9]))
+    try:
+        results = [model.process_frame(i / fps, np.zeros((48, 64, 3), np.uint8), bodies()) for i in range(6 * fps)]
+        assert not any(e.ready for e in results[:3 * fps])
+        assert results[-1].ready and results[-1].directed
+        assert batches and all(shape == (32, 256, 256, 3) for shape in batches)
+        assert model.diagnostics()['span_seconds'] >= 3
+    finally:
+        model.close()
+
+
+def test_insufficient_video_rate_explains_abstention():
+    model = fake_model()
+    try:
+        result = None
+        for i in range(20):
+            result = model.process_frame(i / 2, np.zeros((48, 64, 3), np.uint8), bodies())
+        assert not result.ready
+        assert 'too slowly' in result.reasons[0]
+    finally:
+        model.close()

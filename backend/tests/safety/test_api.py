@@ -126,7 +126,7 @@ def test_slow_worker_bounded_queue_hidden_disarm_and_replay_lock(client, monkeyp
     with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
         ws.send_json({'capability':s['capability']}); receive_result(ws)
         h = {'X-Session-Capability':s['capability']}
-        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({'phone_mode':'real'}),headers=h).status_code == 409
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({'phone_mode':'real'}),headers=h).status_code == 403
         assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload({'phone_mode':'dry_run'}),headers=h).status_code == 200
         for i in range(15):
             ws.send_json({'v':1,'session_id':s['id'],'frame_id':i,'captured_ms':time.monotonic()*1000,'jpeg':raw})
@@ -314,7 +314,7 @@ def test_live_only_sessions_reject_recording_and_phone_actions(client, options):
         ws.send_json({'capability': s['capability']}); receive_result(ws)
         response = c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload(options),
                           headers={'X-Session-Capability': s['capability']})
-        assert response.status_code == 409
+        assert response.status_code == (403 if options.get('phone_mode') == 'real' else 409)
         assert not app.state.safety.session.policy.armed
     wait_closed(c, app)
 
@@ -360,3 +360,245 @@ def test_live_only_detects_two_episodes_without_history_writes_or_incident_coold
             assert await db.scalar(select(Incident)) is None
             assert await db.scalar(select(Action)) is None
     c.portal.call(check_empty)
+
+
+def enable_owner_calls(rt):
+    from pydantic import SecretStr
+    from test_actions import credentials, Provider
+    credentials(rt.config)
+    rt.config.SAFETY_CALL_MODE = 'real'
+    rt.config.SAFETY_CALL_OWNER_KEY = SecretStr('owner-test-key')
+    rt.detector.ready = True
+    rt.dispatcher.provider = Provider()
+    return {'X-Safety-Owner': 'owner-test-key'}
+
+
+def test_automatic_calls_require_owner_live_session_and_acknowledgement(client):
+    c, app = client
+    rt = app.state.safety
+    owner = enable_owner_calls(rt)
+    assert c.get('/safety/status').json()['real_auto_calls_available']
+    assert not c.get('/safety/status').json()['qualified']
+    assert c.get('/safety/owner/status').status_code == 403
+    assert c.get('/safety/owner/status', headers={'X-Safety-Owner': 'wrong'}).status_code == 403
+    assert c.get('/safety/owner/status', headers=owner).status_code == 200
+    assert 'owner-test-key' not in c.get('/safety/status').text
+    for source, live_only in [('live', False), ('live', True), ('replay', False)]:
+        s = session(c, source, live_only=live_only)
+        h = {'X-Session-Capability': s['capability']}
+        with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+            ws.send_json({'capability': s['capability']}); receive_result(ws)
+            path = f'/safety/sessions/{s["id"]}/arm'
+            options = arm_payload({'phone_mode': 'real', 'recipient_acknowledged': True})
+            assert c.post(path, json=options, headers=h).status_code == 403
+            assert c.post(path, json={**options, 'recipient_acknowledged': False}, headers={**h, **owner}).status_code == 409
+            response = c.post(path, json=options, headers={**h, **owner})
+            assert response.status_code == (200 if source == 'live' and not live_only else 409)
+            if response.status_code == 200:
+                assert rt.session.policy.entry_seconds == .3
+                assert rt.session.call_policy.entry_seconds == 1.5
+                assert c.get('/safety/status').json()['event_policy']['entry_seconds'] == .3
+            rt.config.SAFETY_CALL_MODE = 'off'
+            assert c.post(path, json=options, headers={**h, **owner}).status_code == 409
+            rt.config.SAFETY_CALL_MODE = 'real'
+        wait_closed(c, app)
+    assert rt.dispatcher.provider.calls == 0
+
+
+@pytest.mark.parametrize('outcome', ['dispatch', 'cancel', 'pause', 'tracking_loss', 'disable'])
+def test_one_point_five_second_owner_call_end_to_end_with_mock_provider(client, monkeypatch, outcome):
+    c, app = client
+    rt = app.state.safety
+    owner = enable_owner_calls(rt)
+    clock = [1000.]
+    rt.dispatcher.clock = lambda: clock[0]
+    evidence = Evidence(True, .95, True, 2, ('Synthetic owner-call test',), (1, 2))
+    monkeypatch.setattr(rt.detector, 'process', lambda t, f: (evidence, []))
+    s = session(c)
+    h = {**owner, 'X-Session-Capability': s['capability']}
+    raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48, 64, 3), np.uint8))[1]).decode()
+    path = f'/safety/sessions/{s["id"]}/phone-actions'
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload({'phone_mode': 'real', 'recipient_acknowledged': True}), headers=h).status_code == 200
+        assert c.get(path, headers=owner).status_code == 403
+        assert c.get(path, headers={'X-Session-Capability': s['capability']}).status_code == 403
+        started = time.monotonic()
+        first_capture = None
+        created = 0
+        for i in range(36):
+            captured = time.monotonic()
+            if first_capture is None: first_capture = captured
+            ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': i, 'captured_ms': captured * 1000, 'jpeg': raw})
+            result = receive_result(ws)
+            if captured - first_capture < .3:
+                assert not result.get('new_event')
+            if captured - first_capture < 1.5:
+                assert not c.get(path, headers=h).json()['items']
+            created += bool(result.get('new_event'))
+            if c.get(path, headers=h).json()['items']: break
+            time.sleep(.1)
+        assert created == 1 and time.monotonic() - started >= 1.5
+        actions = c.get(path, headers=h).json()['items']
+        assert len(actions) == 1 and actions[0]['state'] == 'countdown'
+        assert rt.dispatcher.provider.calls == 0
+        aid = actions[0]['id']
+        if outcome == 'cancel':
+            assert c.post(f'{path}/{aid}/cancel', headers=h).status_code == 200
+        elif outcome == 'pause':
+            assert c.post(f'/safety/sessions/{s["id"]}/disarm', headers=h).status_code == 200
+        elif outcome == 'tracking_loss':
+            evidence = Evidence(False)
+            ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': 100, 'captured_ms': time.monotonic()*1000, 'jpeg': raw})
+            receive_result(ws)
+        elif outcome == 'disable':
+            rt.config.SAFETY_CALL_MODE = 'off'
+        clock[0] += 1
+        c.portal.call(rt.dispatcher.tick)
+        assert rt.dispatcher.provider.calls == (1 if outcome == 'dispatch' else 0)
+        actions = c.get(path, headers=h).json()['items']
+        assert actions[0]['state'] == ('submitted' if outcome == 'dispatch' else 'cancelled')
+        c.portal.call(rt.dispatcher.tick)
+        assert rt.dispatcher.provider.calls == (1 if outcome == 'dispatch' else 0)
+    wait_closed(c, app)
+
+
+def test_short_hit_still_alerts_with_owner_calls_without_scheduling_a_call(client, monkeypatch):
+    c, app = client
+    rt = app.state.safety
+    owner = enable_owner_calls(rt)
+    evidence = Evidence(True, .95, True, 2, (), (1, 2))
+    monkeypatch.setattr(rt.detector, 'process', lambda t, f: (evidence, []))
+    s = session(c)
+    h = {**owner, 'X-Session-Capability': s['capability']}
+    raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48, 64, 3), np.uint8))[1]).decode()
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload({'phone_mode': 'real', 'recipient_acknowledged': True}), headers=h).status_code == 200
+        alerts = 0
+        for i in range(12):
+            if i == 6: evidence = Evidence(True, .1, False, 2)
+            ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': i, 'captured_ms': time.monotonic()*1000, 'jpeg': raw})
+            result = receive_result(ws)
+            alerts += bool(result.get('new_event'))
+            time.sleep(.1)
+        assert alerts == 1
+        assert c.get(f'/safety/sessions/{s["id"]}/phone-actions', headers=h).json()['items'] == []
+        assert rt.dispatcher.provider.calls == 0
+    wait_closed(c, app)
+
+
+def test_demo_starts_real_calls_without_owner_code_and_keeps_session_capability(client):
+    from pydantic import SecretStr
+    c, app = client
+    rt = app.state.safety
+    enable_owner_calls(rt)
+    rt.config.SAFETY_DEMO_AUTO_CALLS = True
+    rt.config.SAFETY_CALL_OWNER_KEY = SecretStr('')
+    status = c.get('/safety/status').json()
+    assert status['demo_auto_calls'] and status['real_auto_calls_available']
+    assert c.get('/safety/owner/status').status_code == 200
+    s = session(c)
+    h = {'X-Session-Capability': s['capability']}
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        response = c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload({'phone_mode': 'real', 'recipient_acknowledged': True}), headers=h)
+        assert response.status_code == 200
+        assert rt.session.phone_mode == 'real' and rt.session.phone_authorized
+        assert c.get('/safety/status').json()['live_diagnostics']['phone_mode'] == 'real'
+        path = f'/safety/sessions/{s["id"]}/phone-actions'
+        assert c.get(path).status_code == 403
+        assert c.get(path, headers=h).status_code == 200
+        assert rt.dispatcher.provider.calls == 0
+    wait_closed(c, app)
+
+
+def test_faster_websocket_than_arm_http_does_not_pause_fresh_video(client, monkeypatch):
+    c, app = client
+    rt = app.state.safety
+    rt.detector.ready = True
+    monkeypatch.setattr(rt.detector, 'process', lambda t, f: (Evidence(True, .1, False, 2), []))
+    s = session(c)
+    raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48, 64, 3), np.uint8))[1]).decode()
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream', headers=ORIGIN) as ws:
+        ws.send_json({'capability': s['capability']}); receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm', json=arm_payload(), headers={'X-Session-Capability': s['capability']}).status_code == 200
+        # Reproduce an arm HTTP request taking 600 ms longer than video upload.
+        rt.session.clock_offset += .6
+        for i in range(3):
+            ws.send_json({'v': 1, 'session_id': s['id'], 'frame_id': i, 'captured_ms': time.monotonic()*1000, 'jpeg': raw})
+            result = receive_result(ws)
+            assert result['state'] not in ('unavailable', 'disarmed')
+            assert result['tracking'] == 'observed'
+            assert rt.session.policy.armed
+            time.sleep(.05)
+    wait_closed(c, app)
+
+
+def test_replacing_adjacent_queued_frames_preserves_action_history(client, monkeypatch):
+    c, app = client
+    rt = app.state.safety
+    rt.detector.ready = True
+    def process(t, f):
+        time.sleep(.05)
+        return Evidence(True, .1, False, 2), []
+    monkeypatch.setattr(rt.detector, 'process', process)
+    s = session(c, live_only=True)
+    raw = base64.b64encode(cv2.imencode('.jpg', np.zeros((48,64,3),np.uint8))[1]).decode()
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream',headers=ORIGIN) as ws:
+        ws.send_json({'capability':s['capability']});receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload(),headers={'X-Session-Capability':s['capability']}).status_code==200
+        ws.send_json({'v':1,'session_id':s['id'],'frame_id':0,'captured_ms':time.monotonic()*1000,'jpeg':raw});receive_result(ws)
+        resets=[]
+        monkeypatch.setattr(rt.detector,'reset',lambda:resets.append(1))
+        for i in range(1,9):
+            ws.send_json({'v':1,'session_id':s['id'],'frame_id':i,'captured_ms':time.monotonic()*1000,'jpeg':raw})
+        for _ in range(9):
+            result=receive_result(ws)
+            if result.get('frame_id')==8:break
+        else:raise AssertionError('Newest queued frame was not processed')
+        assert result['dropped_frames']>0 and resets==[]
+        assert rt.session.policy.armed
+    wait_closed(c,app)
+
+
+def test_demo_waits_for_arm_response_before_first_video_frame(client, monkeypatch):
+    c, app = client
+    rt=app.state.safety
+    rt.config.SAFETY_DEMO_AUTO_CALLS=True
+    rt.detector.ready=True
+    monkeypatch.setattr(rt.detector,'process',lambda t,f:(Evidence(True,.1,False,2),[]))
+    s=session(c,live_only=True)
+    raw=base64.b64encode(cv2.imencode('.jpg',np.zeros((48,64,3),np.uint8))[1]).decode()
+    with c.websocket_connect(f'/safety/sessions/{s["id"]}/stream',headers=ORIGIN) as ws:
+        ws.send_json({'capability':s['capability']});receive_result(ws)
+        assert c.post(f'/safety/sessions/{s["id"]}/arm',json=arm_payload(),headers={'X-Session-Capability':s['capability']}).status_code==200
+        time.sleep(1.3)
+        assert rt.session.policy.armed
+        ws.send_json({'v':1,'session_id':s['id'],'frame_id':0,'captured_ms':time.monotonic()*1000,'jpeg':raw})
+        result=receive_result(ws)
+        assert result['state'] not in ('disarmed','unavailable') and result['tracking']=='observed'
+    wait_closed(c,app)
+
+
+def test_demo_start_replaces_old_session_and_cancels_pending_actions(client):
+    c,app=client
+    rt=app.state.safety
+    rt.config.SAFETY_DEMO_AUTO_CALLS=True
+    old=session(c)
+    action=c.post('/safety/phone/test',json={'request_id':'replace-demo-pending'}).json()['action_id']
+    new=c.post('/safety/sessions',json={'source':'live','replace_existing':True})
+    assert new.status_code==201 and new.json()['id']!=old['id']
+    assert rt.session.id==new.json()['id']
+    actions=c.get('/safety/phone/actions').json()['items']
+    assert next(a for a in actions if a['id']==action)['state']=='cancelled'
+    # A late close from the old tab cannot stop its replacement.
+    assert c.delete(f'/safety/sessions/{old["id"]}',headers={'X-Session-Capability':old['capability']}).status_code==200
+    assert rt.session.id==new.json()['id']
+
+
+def test_session_replacement_is_not_implicitly_enabled_outside_demo(client):
+    c,app=client
+    old=session(c)
+    r=c.post('/safety/sessions',json={'replace_existing':True})
+    assert r.status_code==409 and app.state.safety.session.id==old['id']

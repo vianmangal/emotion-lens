@@ -16,8 +16,28 @@ def verify_artifact(path, checksum):
         raise ValueError('Model checksum mismatch')
 
 
+def unique_person_boxes(boxes, scores):
+    """Remove small overlapping head/torso proposals for an observed body."""
+    kept = []
+    for index in sorted(range(len(boxes)), key=lambda i: (boxes[i][2]-boxes[i][0])*(boxes[i][3]-boxes[i][1]), reverse=True):
+        box = boxes[index]
+        area = (box[2]-box[0])*(box[3]-box[1])
+        cx, cy = (box[0]+box[2])/2, (box[1]+box[3])/2
+        duplicate = False
+        for other in kept:
+            big = boxes[other]
+            big_area = (big[2]-big[0])*(big[3]-big[1])
+            overlap = max(0, min(box[2],big[2])-max(box[0],big[0])) * max(0, min(box[3],big[3])-max(box[1],big[1]))
+            if area <= big_area*.5 and big[0] <= cx <= big[2] and big[1] <= cy <= big[3] and overlap >= area*.5:
+                duplicate = True
+                break
+        if not duplicate:
+            kept.append(index)
+    return [boxes[i] for i in kept], [scores[i] for i in kept]
+
+
 class Detector:
-    qualified = False  # Real-world qualification is unmet. No environment flag bypasses this gate.
+    qualified = False  # Experimental even when the owner explicitly enables phone alerts.
 
     def __init__(self, config):
         self.config = config
@@ -57,7 +77,7 @@ class Detector:
                 elif config.SAFETY_TEMPORAL_MODEL != 'baseline':
                     raise ValueError('Unsupported temporal model')
             self.ready = True
-            self.reason = 'Experimental detector; automatic real calls unavailable pending evaluation'
+            self.reason = 'Experimental detector; recognition accuracy remains unqualified'
         except Exception as exc:
             self.reason = f'Detector unavailable ({type(exc).__name__}); check local model setup'
             if self.pose:
@@ -104,6 +124,7 @@ class Detector:
                 if box[2] > box[0] and box[3] > box[1] and (box[2] - box[0]) * (box[3] - box[1]) >= .01:
                     boxes.append(box)
                     scores.append(category.score)
+            boxes, scores = unique_person_boxes(boxes, scores)
             # Box observations are real person detections. No artificial joint
             # confidence or inferred skeleton is exposed to the live overlay.
             tracks, _ = self.tracker.update([np.zeros((17, 3), np.float32) for _ in boxes], boxes, scores)

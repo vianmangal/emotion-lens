@@ -39,3 +39,13 @@ def test_uncertainty_does_not_close_active_episode():
     advance(p, 1, 10, Evidence(False))
     assert p.event_open
     assert not any(a for a, _ in advance(p, 11, 5, POS))
+
+
+def test_three_second_trigger_resets_on_negative_or_missing_evidence():
+    for interruption in (NEG, Evidence(False), Evidence(True, .99, True, 1)):
+        p = EventPolicy(entry_seconds=3); p.arm()
+        assert not any(a for a, _ in advance(p, 0, 2, POS))
+        assert p.step(2, interruption) == (False, False)
+        assert not any(a for a, _ in advance(p, 2.1, 3, POS))
+        assert p.step(5.2, POS) == (True, False)
+        assert not any(a for a, _ in advance(p, 5.3, 3, POS))

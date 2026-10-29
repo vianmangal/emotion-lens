@@ -10,6 +10,7 @@ class StrictModel(BaseModel):
 class SessionOptions(StrictModel):
     source: Literal['live', 'replay'] = 'live'
     live_only: bool = False
+    replace_existing: bool = False
 
 
 class ArmOptions(StrictModel):

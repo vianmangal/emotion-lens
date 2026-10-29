@@ -15,10 +15,11 @@ async function capability() {
   return bootstrap;
 }
 
-export async function safetyRequest(path, { method = 'GET', body, session, blob = false } = {}) {
+export async function safetyRequest(path, { method = 'GET', body, session, ownerKey, blob = false } = {}) {
   const headers = { 'X-Safety-Capability': await capability() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (session) headers['X-Session-Capability'] = session.capability;
+  if (ownerKey) headers['X-Safety-Owner'] = ownerKey;
   let response;
   try { response = await fetch(`${base}/safety${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }); }
   catch { throw new Error('Backend disconnected. Monitoring is unavailable.'); }

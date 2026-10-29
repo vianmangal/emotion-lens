@@ -207,3 +207,19 @@ def test_temporal_model_and_trajectory_gate_use_same_pair_with_bystanders():
     temporal.model = object(); temporal.infer = infer
     evidence = temporal.classify(window, (480,640,3))
     assert evidence.directed and evidence.track_ids == (3,4) and evidence.score == .9
+
+
+def test_small_head_proposal_is_not_counted_as_another_person():
+    from backend.safety.detector import unique_person_boxes
+    left=[.02,.35,.31,1.]
+    head=[.02,.25,.16,.55]
+    right=[.5,.2,.95,1.]
+    boxes,scores=unique_person_boxes([head,left,right],[.22,.5,.7])
+    assert boxes==[right,left] and scores==[.7,.5]
+
+
+def test_distinct_people_and_similar_sized_overlapping_boxes_are_kept():
+    from backend.safety.detector import unique_person_boxes
+    boxes=[[.02,.2,.31,1.],[.2,.2,.49,1.],[.6,.2,.95,1.]]
+    result,_=unique_person_boxes(boxes,[.8,.8,.8])
+    assert len(result)==3

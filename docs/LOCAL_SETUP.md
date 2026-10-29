@@ -46,7 +46,7 @@ Plain `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --ws-max-size 10485
 3. Watch for **Possible hit detected** in the live status. Camera selection, Start and Stop are the main controls. **Resume detection** appears only after a pause; returning to a visible tab does not silently resume analysis.
 4. Stop releases the camera and connection. Switching to another application view also releases them. Camera switching requires Stop, select another device, then Start.
 
-The simplified live view has no incident history, clips, sound/phone settings or separate arming step. It requests `live_only: true`: incident writes, recording and phone actions are disabled for that session, and the incident-notification cooldown is removed. Existing local data and the older backend APIs are preserved. A session still expires after one hour by default; Stop/Start renews it.
+By default, the simplified live view uses `live_only: true`: incident writes, recording and phone actions are disabled for that session, and the incident-notification cooldown is removed. Optional owner phone controls and explicitly configured demo auto-calling are described in the README; both are disabled in the current local configuration. Existing local data and the older backend APIs are preserved. A session still expires after one hour by default; Stop/Start renews it.
 
 See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental. Public-video development results are measured; accuracy on this webcam, these participants and unseen conditions remains unmeasured.
 
@@ -58,7 +58,7 @@ See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental
 
 Set `MODEL_PATH=models/emotion_cnn_20260530_193721_best.keras` in a root `.env`. Existing tracked expression weights are preserved. `/predict` retains its multipart `image` and response contract; `/health` reports expression configuration separately. TensorFlow is lazy and optional, so missing expression dependencies/weights cannot prevent safety startup. The physical weight files were not validated during this implementation; legacy preprocessing/API behavior is tested with an inference mock.
 
-## ElevenLabs adapter (backend only, deferred from the live view)
+## Optional ElevenLabs adapter
 
 Dry runs need no credentials or internet. A real test needs an ElevenLabs agent, a native connected outbound-capable Twilio phone number/verified caller ID, and a consenting recipient. An API key alone is not a phone line. Follow [native integration prerequisites](https://elevenlabs.io/docs/eleven-agents/phone-numbers/twilio-integration/native-integration/).
 
@@ -69,14 +69,14 @@ ELEVENLABS_API_KEY=
 ELEVENLABS_AGENT_ID=
 ELEVENLABS_AGENT_PHONE_NUMBER_ID=
 SAFETY_ALERT_TO_NUMBER=
-SAFETY_CALL_GRACE_SECONDS=10
+SAFETY_CALL_GRACE_SECONDS=2
 SAFETY_CALL_COOLDOWN_SECONDS=300
 SAFETY_CALL_MAX_PER_HOUR=3
 ```
 
 The destination is E.164 (`+` followed by country code and number). Only the configured destination can be called. The UI reveals its last four digits. Configure the agent to speak its trusted `emotionlens_message` dynamic variable, keep calls short, end after the message, and disable unnecessary tools; configure maximum duration in ElevenLabs. The adapter uses [the native outbound-call endpoint](https://elevenlabs.io/docs/api-reference/integrations/twilio/outbound-call), sets `call_recording_enabled=false`, and sends a brief trusted message with no images, video, or embeddings. Review agent transcript/audio retention separately; that flag controls Twilio recording, not all provider retention.
 
-The current Live Safety screen exposes no phone tests or real-call controls. Live-only sessions reject phone modes and clips. The server adapter and its tests remain for a later phase; no real call is part of installation/tests, and automatic real mode remains locked while qualification is unmet.
+Live-only sessions reject phone modes and clips. Optional owner-authorized real-call controls require server configuration and the private owner key; optional demo auto-calling requires an explicit server setting. Neither mode qualifies detector accuracy. Installation and tests do not place real calls.
 
 A submitted request does not establish that anyone answered. `failed` means explicit rejection; timeout/ambiguous provider responses become `delivery_unknown` without retry. At most one submission is in flight, with 5-minute recipient cooldown and 3 real attempts per rolling hour, including real tests. Deleting an event preserves minimal call accounting/dedup for at least that horizon. Restart cancels countdowns and marks interrupted submissions unknown. Submitted calls cannot be recalled by this app.
 
