@@ -1,86 +1,74 @@
 # EmotionLens
 
-A local FastAPI + React app for facial-expression analysis and **experimental live webcam motion monitoring**. It runs on one computer with SQLite and local files. No AWS account, PostgreSQL, Docker, hosting, or paid API is needed.
+> Hosted demo decommissioned on 2026-10-28 at the owner’s request. The demo server, cloud disk, public IP, S3 backups and remote configuration were deleted. The rented Sarvam caller number was permanently deleted. Local project files remain; automatic calls are disabled.
 
-Live Safety analyzes a sequence of person poses and flags **“Possible striking motion — review footage.”** It does not establish intent or prove an assault. Facial-expression scores never enter safety decisions.
+A demo app for **live two-person tracking and possible-hit detection**, with optional facial-expression analysis for images and webcam snapshots.
 
-## Start locally
+Built with React, FastAPI, MediaPipe and SQLite. No cloud account or paid API is needed for the live feed.
 
-Python 3.11, Node.js 22 or newer, and a desktop Chromium browser are recommended. From the repository root:
+## Features
+
+- Live camera feed with person boxes and labels.
+- **Possible hit detected** alerts from a learned RGB video model.
+- An optional test panel to compare staged attempts with ordinary gestures.
+- Recovery from transient video stalls in optional demo mode, with bounded frame queues and duplicate person-box filtering.
+- Optional owner or demo phone alerts with a 1.5-second trigger and two-second cancellation countdown; disabled by default.
+
+## Run locally
+
+Use Python 3.11, Node.js 22+ and a Chromium-based browser. Run these commands from the repository root.
+
+**Terminal 1 — backend**
 
 ```bash
-python3.11 -m venv .venv-safety
-source .venv-safety/bin/activate
-pip install -r backend/requirements-safety.txt
-python scripts/download_models.py
+python3.11 -m venv .venv-visual
+source .venv-visual/bin/activate
+pip install -r backend/requirements-visual.txt
+python scripts/download_models.py --visual
 python scripts/run_local.py
 ```
 
-In another terminal:
+**Terminal 2 — frontend**
 
 ```bash
 cd deep_fe/frontend
 npm ci
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Open **http://127.0.0.1:5173**, select **Live Safety** and click **Start camera**. This starts the video feed, person tracking and motion detection together. **Stop** releases the camera. If detection pauses after a hidden tab or an interrupted stream, click **Resume detection**.
+Open **http://127.0.0.1:5173** → **Live Safety** → **Start camera**.
 
-## Current live view
+Keep both people's shoulders, elbows and hands in view. Use staged motions that stop short of contact. Click **Stop** to release the camera, or **Resume detection** if monitoring pauses.
 
-- One camera feed with labeled person boxes and skeletons.
-- A live people count, with a request to show two people when fewer are visible.
-- A **Possible hit detected** warning when directed striking motion passes the temporal detector.
-- Camera selection, Start, Stop and recovery through Resume detection.
+## Current limitations
 
-The current view has no incident history, phone controls, recording controls or separate Arm step. Live-only sessions do not save incidents/clips or schedule phone actions. Existing local records are preserved. The older backend incident/phone APIs remain available for later work, outside this simplified view.
+Hit detection is experimental: it can miss motions or flag ordinary gestures. An alert does not establish contact or intent. Facial-expression scores are separate from hit detection.
 
-The default detector is an experimental directed-wrist trajectory baseline over multiple pose frames. It requires two visible people and relevant arm landmarks; occluded or stale input is insufficient evidence. Human accuracy has not been measured, so the warning describes possible motion rather than proven contact or intent.
+By default, Live Safety does not save incident history or video clips, or make phone calls. Owner-enabled phone sessions save incident metadata and can call the configured recipient; video recording remains off.
 
-For the planned two-person presentation, follow the [live demo walkthrough](docs/DEMO.md). See [local setup](docs/LOCAL_SETUP.md) for dependencies and camera recovery. The original upload and webcam-snapshot views remain available separately.
+## Demo phone alerts
 
-An optional pretrained temporal comparison is also installed independently:
+With `SAFETY_DEMO_AUTO_CALLS=true` and a configured provider, Live Safety enables calls automatically with **Start camera**. The retired hosted demo used this mode at the owner’s request; when configured, there is no access-code or activation form. The 1.5-second sustained-detection trigger, two-second cancellation countdown, three-attempt hourly limit and five-minute cooldown apply. **Disable calls and stop camera** switches calls off for the current page.
 
-```bash
-.venv-safety/bin/python scripts/setup_temporal.py
-# Stop the other backend before starting this one.
-.venv-model/bin/python scripts/run_local.py --model stgcn
-```
+## Owner phone alerts
 
-See [model feasibility](docs/SAFETY_MODEL_REPORT.md) and [verification results](docs/SAFETY_EVALUATION.md) for measurements and their limits. The [original PRD](docs/PRD-LIVE-SAFETY.md) describes the earlier, broader scope; the owner's latest request prioritizes the simple live view above.
+Configure the phone provider and recipient, set `SAFETY_CALL_MODE=real` and a private `SAFETY_CALL_OWNER_KEY`, then restart the backend. In Live Safety, enter the owner code under **Phone alerts**, select **Enable calls**, and start the camera. The code stays in browser memory and is sent in a request header, never in a URL or saved browser storage. Ordinary public sessions cannot enable paid calls.
 
-## Checks
+On-screen hit alerts use the normal 300 ms confirmation; enabling calls does not delay those alerts. A separate timer requiring 1.5 continuous seconds of positive possible-strike evidence starts a cancelable countdown (2 seconds by default). Interrupted or insufficient evidence resets the 1.5-second trigger. This is motion classification, not verified physical contact. Action analysis supports approximately 3 FPS or faster arriving video, resampling the same 3.1-second window. The screen explains warm-up, slow video and insufficient two-person coverage separately. The detector remains experimental; enabling owner calls does not qualify its accuracy. The interface shows the countdown and provider outcome. Provider acceptance does not prove delivery or that the recipient answered.
 
-```bash
-.venv-safety/bin/python -m pip install -r backend/requirements-test.txt
-.venv-safety/bin/python -m pytest
-cd deep_fe/frontend
-npm run build
-npx playwright install chromium
-npm run test:e2e
-```
+**Cancel call**, **Stop**, pausing, hiding the tab, losing tracking, or disconnecting cancels pending calls. Submitted calls cannot be recalled. Calls retain a five-minute cooldown and maximum three attempts per hour; uncertain delivery is never automatically retried. Accuracy-test controls are hidden while real calls are enabled. Disable calls before running staged accuracy trials.
 
-Tests use mocks/fake camera input, temporary SQLite databases, and generated media. They never contact the phone provider. Replay/evaluation helpers accept local videos and cannot auto-call:
+## Hosted demo
 
-```bash
-.venv-safety/bin/python scripts/replay.py path/to/video.mp4 --output data/replay.json
-.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split development --output data/dev.json
-.venv-model/bin/python scripts/evaluate.py path/to/manifest.json --model stgcn --split held_out --development-report data/dev.json --output data/evaluation.json
-```
+The former deployment at `cnn.vian1.tech` was decommissioned on 2026-10-28. AWS compute, storage, public IP, backups and remote configuration were deleted, and the Sarvam caller number was released. No hosted demo is currently running. Local use does not require paid hosting.
 
-## Architecture
+[DEPLOY_AWS.md](docs/DEPLOY_AWS.md) preserves the deployment architecture and shutdown status. GitHub Actions runs checks only; pushing code does not provision or restart services.
 
-```text
-Browser webcam → bounded WebSocket → person poses / tracking → temporal classifier
-                                                           → motion policy
-                                                           → live tracks / possible-hit status
+## More information
 
-Older full API mode → SQLite incidents / optional clips / phone adapter
-Uploaded image → face preprocessing → optional TensorFlow CNN → SQLite prediction
-```
-
-Backend: `backend/`; UI: `deep_fe/frontend/`; schema changes: `migrations/`; explicit setup/evaluation: `scripts/`; private local runtime data: ignored `data/`.
-
-The original expression report covers 6,236 samples: 61.45% accuracy, 59.03% macro F1, 61.76% weighted F1. These are historical expression results and say nothing about action detection. Original training/evaluation scripts and tracked expression weights are preserved.
-
-The [Live Safety PRD](docs/PRD-LIVE-SAFETY.md) records the earlier broader roadmap; [the original handoff](docs/IMPLEMENTATION-HANDOFF.md) is historical implementation context. Obsolete repository deployment files were removed. No cloud account resources were accessed or changed.
+- [Setup and troubleshooting](docs/LOCAL_SETUP.md)
+- [Demo and accuracy testing](docs/DEMO.md)
+- [Verification results and test commands](docs/SAFETY_EVALUATION.md)
+- [Detector and model details](docs/SAFETY_MODEL_REPORT.md)
+- [Current visual model and development measurements](docs/VISUAL_STRIKE_MODEL.md)
+- [Explain exported trial results](docs/DETECTION_QUALITY.md)

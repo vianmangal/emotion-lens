@@ -81,13 +81,16 @@ def validate_manifest(payload, directory):
 
 def pipeline_identity(config):
     paths = ['backend/safety/detector.py', 'backend/safety/tracking.py', 'backend/safety/temporal_model.py',
-             'backend/safety/event_policy.py', 'scripts/stgcn_config.py', 'scripts/replay.py', 'scripts/evaluate.py']
+             'backend/safety/event_policy.py', 'backend/safety/video_model.py', 'scripts/stgcn_config.py', 'scripts/replay.py', 'scripts/evaluate.py']
     digest = hashlib.sha256()
     for path in paths:
         digest.update(path.encode())
         digest.update((ROOT / path).read_bytes())
-    return {'pipeline_sha256': digest.hexdigest(), 'pose_sha256': config.SAFETY_POSE_SHA256,
+    return {'pipeline_sha256': digest.hexdigest(), 'pose_sha256': config.SAFETY_POSE_SHA256 if config.SAFETY_TEMPORAL_MODEL != 'visual' else None,
+            'person_detector_sha256': config.SAFETY_PERSON_SHA256 if config.SAFETY_TEMPORAL_MODEL == 'visual' else None,
             'temporal_sha256': config.SAFETY_STGCN_SHA256 if config.SAFETY_TEMPORAL_MODEL == 'stgcn' else None,
+            'visual_weights_sha256': config.SAFETY_VISUAL_WEIGHTS_SHA256 if config.SAFETY_TEMPORAL_MODEL == 'visual' else None,
+            'visual_head_sha256': config.SAFETY_VISUAL_HEAD_SHA256 if config.SAFETY_TEMPORAL_MODEL == 'visual' else None,
             'threshold_version': threshold_version(config.event_policy_options())}
 
 
@@ -102,7 +105,7 @@ def verify_frozen_development(current, development):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', type=Path)
-    parser.add_argument('--model', choices=['baseline', 'stgcn'], default='baseline')
+    parser.add_argument('--model', choices=['baseline', 'stgcn', 'visual'], default='baseline')
     parser.add_argument('--split', choices=['development', 'held_out'], default='held_out')
     parser.add_argument('--development-report', type=Path, help='Required frozen reference for held-out evaluation')
     parser.add_argument('--output', type=Path, required=True)

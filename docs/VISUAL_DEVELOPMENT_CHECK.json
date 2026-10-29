@@ -1,0 +1,2690 @@
+{
+  "scope": "Public-video development check, not held-out webcam qualification. Counts are clips with at least one alert, not individual-strike recall. A clip may contain multiple actions. Short clips include cold-start warm-up. Mirrored copies are correlated augmentations and are reported separately. No video, poses or phone actions are exported.",
+  "qualified": false,
+  "automatic_calls": false,
+  "grouped_validation": true,
+  "fold_manifest_sha256": "caaf571d9a7c2b86c98ce9a1dbc2200580af7d02dbcad5b9e2317d9b54539b52",
+  "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+  "identity": {
+    "pipeline_sha256": "69e89833662522299d47e57908f37d225383c3be3fcca319c478158403ab15db",
+    "pose_sha256": null,
+    "person_detector_sha256": "b3f50554cb0ea559e90328845f7d9ba4d13c8bff372914d24e06bc8bb72fa896",
+    "temporal_sha256": null,
+    "visual_weights_sha256": "d76dad2f4b2a6701ad7f64e85b294b2d1989f1ea0d3f8b240446ed2152850bbb",
+    "visual_head_sha256": "per-clip excluded-group head; see effective_head_sha256",
+    "threshold_version": "experimental-40bf7d312ea4"
+  },
+  "checker_sha256": "fe626edbeb316dd514e441d95eaa00664f2f1787f2692a4a847d380a125033f6",
+  "jpeg_quality": 75,
+  "analyzed_fps": 10,
+  "source_urls": {
+    "ut-interaction": "https://cvrc.ece.utexas.edu/SDHA2010/Human_Interaction.html",
+    "limu": "https://limu.ait.kyushu-u.ac.jp/~resource/dataset/en/interaction_dataset.html"
+  },
+  "summary": {
+    "limu/original": {
+      "handclap": {
+        "clips": 10,
+        "alerted": 1,
+        "mean_tracking_coverage": 0.4545272191659981
+      },
+      "handshake": {
+        "clips": 10,
+        "alerted": 1,
+        "mean_tracking_coverage": 0.4891266236766819
+      },
+      "punch": {
+        "clips": 10,
+        "alerted": 8,
+        "mean_tracking_coverage": 0.5446099987164678
+      }
+    },
+    "limu/mirrored": {
+      "handclap": {
+        "clips": 10,
+        "alerted": 1,
+        "mean_tracking_coverage": 0.4533454009841799
+      },
+      "handshake": {
+        "clips": 10,
+        "alerted": 0,
+        "mean_tracking_coverage": 0.4779029740811553
+      },
+      "punch": {
+        "clips": 10,
+        "alerted": 8,
+        "mean_tracking_coverage": 0.541943332049801
+      }
+    }
+  },
+  "clips": [
+    {
+      "path": "limu/handclap_1.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "5e80eb438fc526eba9519f38e463bc03fb4cb8d4464dd8a55e8d051811db050d",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/1",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 4.4,
+      "analyzed_frames": 44,
+      "coverage": 0.13636363636363635,
+      "processing_median_ms": 43.78206250839867,
+      "processing_p95_ms": 436.6691419447308,
+      "people_histogram": {
+        "2": 44
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 8,
+        "Experimental visual action score; possible striking motion": 6
+      },
+      "max_score": 4.151074903724151e-05
+    },
+    {
+      "path": "limu/handclap_1.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "5e80eb438fc526eba9519f38e463bc03fb4cb8d4464dd8a55e8d051811db050d",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/1",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 4.4,
+      "analyzed_frames": 44,
+      "coverage": 0.20454545454545456,
+      "processing_median_ms": 39.25343751325272,
+      "processing_p95_ms": 364.1299856855771,
+      "people_histogram": {
+        "2": 44
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 5,
+        "Experimental visual action score; possible striking motion": 9
+      },
+      "max_score": 6.592641449228421e-05
+    },
+    {
+      "path": "limu/handclap_10.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "cdf3f303a7016328480442e42c8f1deebb788e050d47c3866e3f38e5f834526e",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/10",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 4.2,
+      "analyzed_frames": 42,
+      "coverage": 0.16666666666666666,
+      "processing_median_ms": 39.28924999490846,
+      "processing_p95_ms": 393.99778780207134,
+      "people_histogram": {
+        "2": 42
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 5,
+        "Experimental visual action score; possible striking motion": 7
+      },
+      "max_score": 1.0914958577066094e-05
+    },
+    {
+      "path": "limu/handclap_10.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "cdf3f303a7016328480442e42c8f1deebb788e050d47c3866e3f38e5f834526e",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/10",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 4.2,
+      "analyzed_frames": 42,
+      "coverage": 0.16666666666666666,
+      "processing_median_ms": 43.29120852344204,
+      "processing_p95_ms": 333.17845690617014,
+      "people_histogram": {
+        "1": 1,
+        "2": 41
+      },
+      "abstention_reasons": {
+        "Keep exactly two people in the frame": 1,
+        "Building a clear two-person action window\u2026": 29,
+        "Waiting for fresh action analysis\u2026": 5,
+        "Experimental visual action score; possible striking motion": 7
+      },
+      "max_score": 3.760275842547394e-06
+    },
+    {
+      "path": "limu/handclap_2.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "6c4e9f591097a827a8d8027d2cdf8c7574b57b700e98e0b8afae9614a8eb9a86",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/2",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 6.733333333333333,
+      "analyzed_frames": 67,
+      "coverage": 0.5074626865671642,
+      "processing_median_ms": 55.24154199520126,
+      "processing_p95_ms": 359.91811690328177,
+      "people_histogram": {
+        "2": 67
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 34
+      },
+      "max_score": 0.0010773414434546702
+    },
+    {
+      "path": "limu/handclap_2.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "6c4e9f591097a827a8d8027d2cdf8c7574b57b700e98e0b8afae9614a8eb9a86",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/2",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 6.733333333333333,
+      "analyzed_frames": 67,
+      "coverage": 0.5074626865671642,
+      "processing_median_ms": 50.47016599564813,
+      "processing_p95_ms": 304.83253739075735,
+      "people_histogram": {
+        "2": 67
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 34
+      },
+      "max_score": 0.001252791365413214
+    },
+    {
+      "path": "limu/handclap_3.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "a45625be9d99603cd6d614e3facc6b8f089edd33f6a4bea861c0bacce57011e3",
+      "effective_head_sha256": "c61b6ceeb95baebe5b50fcfcf64c9dc6756382dcbb6c40236f5528cd31c59055",
+      "excluded_training_group": "limu/3",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.533333333333333,
+      "analyzed_frames": 75,
+      "coverage": 0.56,
+      "processing_median_ms": 53.30720898928121,
+      "processing_p95_ms": 313.00814630812965,
+      "people_histogram": {
+        "2": 74,
+        "1": 1
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 29,
+        "Keep exactly two people in the frame": 1,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 42
+      },
+      "max_score": 0.0034642842766091832
+    },
+    {
+      "path": "limu/handclap_3.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "a45625be9d99603cd6d614e3facc6b8f089edd33f6a4bea861c0bacce57011e3",
+      "effective_head_sha256": "c61b6ceeb95baebe5b50fcfcf64c9dc6756382dcbb6c40236f5528cd31c59055",
+      "excluded_training_group": "limu/3",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.533333333333333,
+      "analyzed_frames": 75,
+      "coverage": 0.56,
+      "processing_median_ms": 49.852625001221895,
+      "processing_p95_ms": 309.3180124822538,
+      "people_histogram": {
+        "2": 74,
+        "1": 1
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 29,
+        "Keep exactly two people in the frame": 1,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 42
+      },
+      "max_score": 0.00918417329303447
+    },
+    {
+      "path": "limu/handclap_4.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "28b28e2dff2d99f4943e0f955a719f27de5677cd25ed9550975c068ae8dad43e",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/4",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.533333333333333,
+      "analyzed_frames": 75,
+      "coverage": 0.56,
+      "processing_median_ms": 49.748499994166195,
+      "processing_p95_ms": 297.35977930540685,
+      "people_histogram": {
+        "2": 75
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 42
+      },
+      "max_score": 0.00012112213964607907
+    },
+    {
+      "path": "limu/handclap_4.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "28b28e2dff2d99f4943e0f955a719f27de5677cd25ed9550975c068ae8dad43e",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/4",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.533333333333333,
+      "analyzed_frames": 75,
+      "coverage": 0.48,
+      "processing_median_ms": 44.98004200286232,
+      "processing_p95_ms": 340.49794988532085,
+      "people_histogram": {
+        "2": 75
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 9,
+        "Experimental visual action score; possible striking motion": 36
+      },
+      "max_score": 0.001059258484206911
+    },
+    {
+      "path": "limu/handclap_5.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "8f2f93ed30639e05ae4dc2cee71bb46b452771ec6338091cf0f7f578d4ea9b9a",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/5",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.4,
+      "analyzed_frames": 74,
+      "coverage": 0.5405405405405406,
+      "processing_median_ms": 50.671375007368624,
+      "processing_p95_ms": 312.5563585475902,
+      "people_histogram": {
+        "2": 74
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 40
+      },
+      "max_score": 6.460898892530978e-06
+    },
+    {
+      "path": "limu/handclap_5.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "8f2f93ed30639e05ae4dc2cee71bb46b452771ec6338091cf0f7f578d4ea9b9a",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/5",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.4,
+      "analyzed_frames": 74,
+      "coverage": 0.5405405405405406,
+      "processing_median_ms": 51.765687501756474,
+      "processing_p95_ms": 318.62906855239993,
+      "people_histogram": {
+        "2": 74
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 40
+      },
+      "max_score": 4.628042555699615e-06
+    },
+    {
+      "path": "limu/handclap_6.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "9b7ebe66bec74961d3a6de48d2980864a2559fc9f21964ae0a785525a374ae45",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/6",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 7.933333333333334,
+          "score": 0.878692181354627,
+          "track_ids": [
+            27,
+            28
+          ],
+          "processing_ms": 57.997124997200444
+        }
+      ],
+      "duration_seconds": 8.533333333333333,
+      "analyzed_frames": 85,
+      "coverage": 0.611764705882353,
+      "processing_median_ms": 51.6406660026405,
+      "processing_p95_ms": 314.12194181466475,
+      "people_histogram": {
+        "2": 85
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 52
+      },
+      "max_score": 0.878692181354627
+    },
+    {
+      "path": "limu/handclap_6.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "9b7ebe66bec74961d3a6de48d2980864a2559fc9f21964ae0a785525a374ae45",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/6",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 7.933333333333334,
+          "score": 0.943616068557519,
+          "track_ids": [
+            29,
+            30
+          ],
+          "processing_ms": 56.51716701686382
+        }
+      ],
+      "duration_seconds": 8.533333333333333,
+      "analyzed_frames": 85,
+      "coverage": 0.611764705882353,
+      "processing_median_ms": 53.69054200127721,
+      "processing_p95_ms": 308.3228249917738,
+      "people_histogram": {
+        "2": 85
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 52
+      },
+      "max_score": 0.943616068557519
+    },
+    {
+      "path": "limu/handclap_7.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "f21832b75f520c590a5a158a2b55966ae3b3172c4f7acf9913c1b3609bbf237b",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/7",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.866666666666666,
+      "analyzed_frames": 59,
+      "coverage": 0.4406779661016949,
+      "processing_median_ms": 46.472583984723315,
+      "processing_p95_ms": 313.792833109619,
+      "people_histogram": {
+        "2": 59
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 26
+      },
+      "max_score": 1.8920065177601984e-06
+    },
+    {
+      "path": "limu/handclap_7.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "f21832b75f520c590a5a158a2b55966ae3b3172c4f7acf9913c1b3609bbf237b",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/7",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.866666666666666,
+      "analyzed_frames": 59,
+      "coverage": 0.4406779661016949,
+      "processing_median_ms": 40.33204200095497,
+      "processing_p95_ms": 308.5600999998859,
+      "people_histogram": {
+        "2": 59
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 26
+      },
+      "max_score": 3.18630695083114e-06
+    },
+    {
+      "path": "limu/handclap_8.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "7e5610bf08f1c232859bf900411d80f8e2730b1016b067416f2cb2bbe947aa0e",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/8",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.4,
+      "analyzed_frames": 74,
+      "coverage": 0.5540540540540541,
+      "processing_median_ms": 51.62404199654702,
+      "processing_p95_ms": 312.8360854112543,
+      "people_histogram": {
+        "2": 74
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 41
+      },
+      "max_score": 0.4329196693813335
+    },
+    {
+      "path": "limu/handclap_8.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "7e5610bf08f1c232859bf900411d80f8e2730b1016b067416f2cb2bbe947aa0e",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/8",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.4,
+      "analyzed_frames": 74,
+      "coverage": 0.5540540540540541,
+      "processing_median_ms": 52.36674949992448,
+      "processing_p95_ms": 303.60049780720146,
+      "people_histogram": {
+        "2": 74
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 41
+      },
+      "max_score": 0.44951771606613344
+    },
+    {
+      "path": "limu/handclap_9.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "87a70b6156d06aee880b23d9da2e54aadd412a303eb91d42eca200bb83cf4ae3",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/9",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 6.2,
+      "analyzed_frames": 62,
+      "coverage": 0.46774193548387094,
+      "processing_median_ms": 48.73512500489596,
+      "processing_p95_ms": 307.0466315286467,
+      "people_histogram": {
+        "2": 62
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 29
+      },
+      "max_score": 0.006727967889866198
+    },
+    {
+      "path": "limu/handclap_9.avi",
+      "dataset": "limu",
+      "category": "handclap",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "87a70b6156d06aee880b23d9da2e54aadd412a303eb91d42eca200bb83cf4ae3",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/9",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 6.2,
+      "analyzed_frames": 62,
+      "coverage": 0.46774193548387094,
+      "processing_median_ms": 49.55141649406869,
+      "processing_p95_ms": 300.7567586333607,
+      "people_histogram": {
+        "2": 62
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 29
+      },
+      "max_score": 0.026395663715353585
+    },
+    {
+      "path": "limu/handshake_1.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "426c75707e3f77757d5547d34bf235c026245ba874a47cf23813fa890d38c541",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/1",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.066666666666666,
+      "analyzed_frames": 51,
+      "coverage": 0.35294117647058826,
+      "processing_median_ms": 37.704375019529834,
+      "processing_p95_ms": 301.6521045065019,
+      "people_histogram": {
+        "2": 51
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 18
+      },
+      "max_score": 1.520675335801069e-05
+    },
+    {
+      "path": "limu/handshake_1.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "426c75707e3f77757d5547d34bf235c026245ba874a47cf23813fa890d38c541",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/1",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.066666666666666,
+      "analyzed_frames": 51,
+      "coverage": 0.35294117647058826,
+      "processing_median_ms": 37.52949999761768,
+      "processing_p95_ms": 302.8126460121712,
+      "people_histogram": {
+        "2": 51
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 18
+      },
+      "max_score": 1.560207229702077e-06
+    },
+    {
+      "path": "limu/handshake_10.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "8f0d22c4eb7bbe585905a8fc9512e4fbb510be91a1de40fc9d6b3b73df13517e",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/10",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.133333333333334,
+      "analyzed_frames": 51,
+      "coverage": 0.35294117647058826,
+      "processing_median_ms": 37.53845900064334,
+      "processing_p95_ms": 309.6283129998483,
+      "people_histogram": {
+        "2": 49,
+        "1": 2
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 1,
+        "Keep exactly two people in the frame": 2,
+        "Experimental visual action score; possible striking motion": 18
+      },
+      "max_score": 0.0026581225684354213
+    },
+    {
+      "path": "limu/handshake_10.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "8f0d22c4eb7bbe585905a8fc9512e4fbb510be91a1de40fc9d6b3b73df13517e",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/10",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.133333333333334,
+      "analyzed_frames": 51,
+      "coverage": 0.27450980392156865,
+      "processing_median_ms": 37.15679197921418,
+      "processing_p95_ms": 185.16800049110316,
+      "people_histogram": {
+        "2": 47,
+        "1": 4
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 29,
+        "Keep exactly two people in the frame": 4,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 14
+      },
+      "max_score": 0.00022614935366285554
+    },
+    {
+      "path": "limu/handshake_2.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "0d0cb9d631e4e1b59f11ec724e628e9fb8cf366a43e63c3d3b2735ea78f6d943",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/2",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.0,
+      "analyzed_frames": 70,
+      "coverage": 0.5285714285714286,
+      "processing_median_ms": 49.88472901459318,
+      "processing_p95_ms": 319.9522165450617,
+      "people_histogram": {
+        "2": 70
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 37
+      },
+      "max_score": 0.0007149376960006469
+    },
+    {
+      "path": "limu/handshake_2.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "0d0cb9d631e4e1b59f11ec724e628e9fb8cf366a43e63c3d3b2735ea78f6d943",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/2",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.0,
+      "analyzed_frames": 70,
+      "coverage": 0.5285714285714286,
+      "processing_median_ms": 47.81514601199888,
+      "processing_p95_ms": 312.7650940499734,
+      "people_histogram": {
+        "2": 70
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 37
+      },
+      "max_score": 0.0011153845350160227
+    },
+    {
+      "path": "limu/handshake_3.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "496983a0919bc9f7c95f8b88293d3ea1e4b0fff26136d765ab12760c78c34bea",
+      "effective_head_sha256": "c61b6ceeb95baebe5b50fcfcf64c9dc6756382dcbb6c40236f5528cd31c59055",
+      "excluded_training_group": "limu/3",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 11.4,
+      "analyzed_frames": 114,
+      "coverage": 0.7105263157894737,
+      "processing_median_ms": 54.07658300828189,
+      "processing_p95_ms": 317.3269914375851,
+      "people_histogram": {
+        "2": 114
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 81
+      },
+      "max_score": 0.05064226039369143
+    },
+    {
+      "path": "limu/handshake_3.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "496983a0919bc9f7c95f8b88293d3ea1e4b0fff26136d765ab12760c78c34bea",
+      "effective_head_sha256": "c61b6ceeb95baebe5b50fcfcf64c9dc6756382dcbb6c40236f5528cd31c59055",
+      "excluded_training_group": "limu/3",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 11.4,
+      "analyzed_frames": 114,
+      "coverage": 0.7105263157894737,
+      "processing_median_ms": 54.69606250699144,
+      "processing_p95_ms": 318.6391836614348,
+      "people_histogram": {
+        "2": 114
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 81
+      },
+      "max_score": 0.15208757567638476
+    },
+    {
+      "path": "limu/handshake_4.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "c85a6826dd13f87afbed47d3f252af4af556ccc8413acc1dad70529e9d8e5684",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/4",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 7.333333333333333,
+          "score": 0.7842079912240887,
+          "track_ids": [
+            61,
+            62
+          ],
+          "processing_ms": 60.46312500257045
+        }
+      ],
+      "duration_seconds": 10.333333333333334,
+      "analyzed_frames": 103,
+      "coverage": 0.6796116504854369,
+      "processing_median_ms": 55.54179198225029,
+      "processing_p95_ms": 303.81651670031715,
+      "people_histogram": {
+        "2": 103
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 70
+      },
+      "max_score": 0.7842079912240887
+    },
+    {
+      "path": "limu/handshake_4.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "c85a6826dd13f87afbed47d3f252af4af556ccc8413acc1dad70529e9d8e5684",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/4",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 10.333333333333334,
+      "analyzed_frames": 103,
+      "coverage": 0.6699029126213593,
+      "processing_median_ms": 52.80524998670444,
+      "processing_p95_ms": 311.492078602896,
+      "people_histogram": {
+        "2": 102,
+        "1": 1
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 69,
+        "Keep exactly two people in the frame": 1
+      },
+      "max_score": 0.7370415728341745
+    },
+    {
+      "path": "limu/handshake_5.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "9eac8d4f0e915ff621407b40418c58e8e9b9c59df88fe89b4b99319085bc1344",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/5",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 8.266666666666667,
+      "analyzed_frames": 83,
+      "coverage": 0.5783132530120482,
+      "processing_median_ms": 52.795832976698875,
+      "processing_p95_ms": 324.4970127940177,
+      "people_histogram": {
+        "2": 81,
+        "1": 2
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 48,
+        "Keep exactly two people in the frame": 2
+      },
+      "max_score": 0.001542682417088712
+    },
+    {
+      "path": "limu/handshake_5.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "9eac8d4f0e915ff621407b40418c58e8e9b9c59df88fe89b4b99319085bc1344",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/5",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 8.266666666666667,
+      "analyzed_frames": 83,
+      "coverage": 0.5542168674698795,
+      "processing_median_ms": 49.95570800383575,
+      "processing_p95_ms": 315.7437790825497,
+      "people_histogram": {
+        "2": 79,
+        "1": 4
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 46,
+        "Keep exactly two people in the frame": 4
+      },
+      "max_score": 0.005651418392026696
+    },
+    {
+      "path": "limu/handshake_6.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "6590c90af63a39a9784df92472f7ec5c67cce576562d92e60734a8a2b58a32aa",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/6",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 8.533333333333333,
+      "analyzed_frames": 85,
+      "coverage": 0.611764705882353,
+      "processing_median_ms": 52.22191600478254,
+      "processing_p95_ms": 304.398117196979,
+      "people_histogram": {
+        "2": 85
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 52
+      },
+      "max_score": 0.0001966906084105313
+    },
+    {
+      "path": "limu/handshake_6.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "6590c90af63a39a9784df92472f7ec5c67cce576562d92e60734a8a2b58a32aa",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/6",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 8.533333333333333,
+      "analyzed_frames": 85,
+      "coverage": 0.611764705882353,
+      "processing_median_ms": 52.73579098866321,
+      "processing_p95_ms": 306.66237521218136,
+      "people_histogram": {
+        "2": 85
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 52
+      },
+      "max_score": 7.754631423811046e-05
+    },
+    {
+      "path": "limu/handshake_7.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "1e9394a34a4d6d7836308ffd9b308e0324d1ec803287f107145da3c1dec143ff",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/7",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 6.333333333333333,
+      "analyzed_frames": 63,
+      "coverage": 0.4603174603174603,
+      "processing_median_ms": 50.38283398607746,
+      "processing_p95_ms": 360.729587188689,
+      "people_histogram": {
+        "2": 63
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 29
+      },
+      "max_score": 1.2050513670498253e-05
+    },
+    {
+      "path": "limu/handshake_7.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "1e9394a34a4d6d7836308ffd9b308e0324d1ec803287f107145da3c1dec143ff",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/7",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 6.333333333333333,
+      "analyzed_frames": 63,
+      "coverage": 0.4603174603174603,
+      "processing_median_ms": 50.62829199596308,
+      "processing_p95_ms": 339.31369580677705,
+      "people_histogram": {
+        "2": 63
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 29
+      },
+      "max_score": 7.084488800380679e-05
+    },
+    {
+      "path": "limu/handshake_8.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "8088286fa45d5f6d8a0e0882a0fc82d1ef0de52e4fd4a9a9a959f23dc35b11b6",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/8",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 8.6,
+      "analyzed_frames": 86,
+      "coverage": 0.6162790697674418,
+      "processing_median_ms": 53.32549999002367,
+      "processing_p95_ms": 314.8785107478034,
+      "people_histogram": {
+        "2": 86
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 53
+      },
+      "max_score": 0.15457810853228762
+    },
+    {
+      "path": "limu/handshake_8.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "8088286fa45d5f6d8a0e0882a0fc82d1ef0de52e4fd4a9a9a959f23dc35b11b6",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/8",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 8.6,
+      "analyzed_frames": 86,
+      "coverage": 0.6162790697674418,
+      "processing_median_ms": 53.990937492926605,
+      "processing_p95_ms": 346.94235424831277,
+      "people_histogram": {
+        "2": 86
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 53
+      },
+      "max_score": 0.0041598334003502485
+    },
+    {
+      "path": "limu/handshake_9.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "b6934855e458f2ad1bd9835e24120f34fa08df6f86deb160c97af7a2d70bc027",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/9",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 4.466666666666667,
+      "analyzed_frames": 45,
+      "coverage": 0.0,
+      "processing_median_ms": 37.04479098087177,
+      "processing_p95_ms": 43.3299837866798,
+      "people_histogram": {
+        "2": 38,
+        "1": 7
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 38,
+        "Keep exactly two people in the frame": 7
+      },
+      "max_score": 0.0
+    },
+    {
+      "path": "limu/handshake_9.avi",
+      "dataset": "limu",
+      "category": "handshake",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "b6934855e458f2ad1bd9835e24120f34fa08df6f86deb160c97af7a2d70bc027",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/9",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 4.466666666666667,
+      "analyzed_frames": 45,
+      "coverage": 0.0,
+      "processing_median_ms": 36.872750002657995,
+      "processing_p95_ms": 38.321941008325666,
+      "people_histogram": {
+        "1": 10,
+        "2": 35
+      },
+      "abstention_reasons": {
+        "Keep exactly two people in the frame": 10,
+        "Building a clear two-person action window\u2026": 35
+      },
+      "max_score": 0.0
+    },
+    {
+      "path": "limu/punch_1.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "6d47555515a8cf70ea5f2a7c385d1d5febf0db73ec8e14179b949d11312bb850",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/1",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9992492497495453,
+          "track_ids": [
+            96,
+            97
+          ],
+          "processing_ms": 52.07187501946464
+        }
+      ],
+      "duration_seconds": 7.733333333333333,
+      "analyzed_frames": 77,
+      "coverage": 0.5714285714285714,
+      "processing_median_ms": 50.905166019219905,
+      "processing_p95_ms": 337.4928668083158,
+      "people_histogram": {
+        "2": 77
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 44
+      },
+      "max_score": 0.9999990643905131
+    },
+    {
+      "path": "limu/punch_1.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "6d47555515a8cf70ea5f2a7c385d1d5febf0db73ec8e14179b949d11312bb850",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/1",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9415227284680268,
+          "track_ids": [
+            98,
+            99
+          ],
+          "processing_ms": 51.536790997488424
+        }
+      ],
+      "duration_seconds": 7.733333333333333,
+      "analyzed_frames": 77,
+      "coverage": 0.5714285714285714,
+      "processing_median_ms": 52.066875010496005,
+      "processing_p95_ms": 321.87101639574394,
+      "people_histogram": {
+        "2": 77
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 44
+      },
+      "max_score": 0.9999979081553805
+    },
+    {
+      "path": "limu/punch_10.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "f7f3ce46e1cb7cb8fe6cc51c23bd699c7bdd30d06bac6ebff7a0a64a8adaf03e",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/10",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9999988687026939,
+          "track_ids": [
+            100,
+            101
+          ],
+          "processing_ms": 60.569875000510365
+        }
+      ],
+      "duration_seconds": 5.333333333333333,
+      "analyzed_frames": 53,
+      "coverage": 0.37735849056603776,
+      "processing_median_ms": 39.26000001956709,
+      "processing_p95_ms": 301.26845798804425,
+      "people_histogram": {
+        "2": 53
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 20
+      },
+      "max_score": 0.999999941485976
+    },
+    {
+      "path": "limu/punch_10.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "f7f3ce46e1cb7cb8fe6cc51c23bd699c7bdd30d06bac6ebff7a0a64a8adaf03e",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/10",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9999558117767124,
+          "track_ids": [
+            102,
+            103
+          ],
+          "processing_ms": 58.88450000202283
+        }
+      ],
+      "duration_seconds": 5.333333333333333,
+      "analyzed_frames": 53,
+      "coverage": 0.37735849056603776,
+      "processing_median_ms": 37.14408300584182,
+      "processing_p95_ms": 316.84549180208705,
+      "people_histogram": {
+        "2": 53
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 20
+      },
+      "max_score": 0.999999988994903
+    },
+    {
+      "path": "limu/punch_2.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "13304d271ff8f7376ce627e14b3e48efbaff2a243dd9776c5e877ab9d1942b11",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/2",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.466666666666667,
+      "analyzed_frames": 75,
+      "coverage": 0.56,
+      "processing_median_ms": 51.500125002348796,
+      "processing_p95_ms": 313.7825787067413,
+      "people_histogram": {
+        "2": 75
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 42
+      },
+      "max_score": 0.6031846507279436
+    },
+    {
+      "path": "limu/punch_2.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "13304d271ff8f7376ce627e14b3e48efbaff2a243dd9776c5e877ab9d1942b11",
+      "effective_head_sha256": "3cd7db54b4692b956a699cdf483c6a32e5d23a809c66faba083702279f155255",
+      "excluded_training_group": "limu/2",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 7.466666666666667,
+      "analyzed_frames": 75,
+      "coverage": 0.56,
+      "processing_median_ms": 49.118332972284406,
+      "processing_p95_ms": 319.7599373961566,
+      "people_histogram": {
+        "2": 75
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 42
+      },
+      "max_score": 0.4941525741155388
+    },
+    {
+      "path": "limu/punch_3.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "c32b5ba39c509f892409a69085c7d91d79d2d3e0ce3ed5003a636dcbbdd22675",
+      "effective_head_sha256": "c61b6ceeb95baebe5b50fcfcf64c9dc6756382dcbb6c40236f5528cd31c59055",
+      "excluded_training_group": "limu/3",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9966650097950717,
+          "track_ids": [
+            108,
+            109
+          ],
+          "processing_ms": 53.541500004939735
+        }
+      ],
+      "duration_seconds": 9.0,
+      "analyzed_frames": 90,
+      "coverage": 0.6333333333333333,
+      "processing_median_ms": 52.469729009317234,
+      "processing_p95_ms": 308.9169687533285,
+      "people_histogram": {
+        "2": 90
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 57
+      },
+      "max_score": 0.9976487063322048
+    },
+    {
+      "path": "limu/punch_3.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "c32b5ba39c509f892409a69085c7d91d79d2d3e0ce3ed5003a636dcbbdd22675",
+      "effective_head_sha256": "c61b6ceeb95baebe5b50fcfcf64c9dc6756382dcbb6c40236f5528cd31c59055",
+      "excluded_training_group": "limu/3",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9925773312162672,
+          "track_ids": [
+            110,
+            111
+          ],
+          "processing_ms": 59.96887502260506
+        },
+        {
+          "onset": 8.933333333333334,
+          "score": 0.9884898600246615,
+          "track_ids": [
+            110,
+            111
+          ],
+          "processing_ms": 306.2684170145076
+        }
+      ],
+      "duration_seconds": 9.0,
+      "analyzed_frames": 90,
+      "coverage": 0.6333333333333333,
+      "processing_median_ms": 54.62683300720528,
+      "processing_p95_ms": 303.28057862934656,
+      "people_histogram": {
+        "2": 90
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 57
+      },
+      "max_score": 0.9925773312162672
+    },
+    {
+      "path": "limu/punch_4.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "4f73c344360e1dc3a3d4e18d9b76531ac6db81bc77c32a1be8ed10458003eb6e",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/4",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9976819820026366,
+          "track_ids": [
+            112,
+            113
+          ],
+          "processing_ms": 61.31229200400412
+        }
+      ],
+      "duration_seconds": 9.8,
+      "analyzed_frames": 98,
+      "coverage": 0.6632653061224489,
+      "processing_median_ms": 52.50362498918548,
+      "processing_p95_ms": 309.2113018836244,
+      "people_histogram": {
+        "2": 98
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 65
+      },
+      "max_score": 0.9998720259844546
+    },
+    {
+      "path": "limu/punch_4.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "4f73c344360e1dc3a3d4e18d9b76531ac6db81bc77c32a1be8ed10458003eb6e",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/4",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9912406039683992,
+          "track_ids": [
+            114,
+            115
+          ],
+          "processing_ms": 60.93633398995735
+        }
+      ],
+      "duration_seconds": 9.8,
+      "analyzed_frames": 98,
+      "coverage": 0.6632653061224489,
+      "processing_median_ms": 54.84947950753849,
+      "processing_p95_ms": 307.7181544198538,
+      "people_histogram": {
+        "2": 98
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 65
+      },
+      "max_score": 0.9997946814788614
+    },
+    {
+      "path": "limu/punch_5.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": false,
+      "sha256": "4084b984da2c4e980f25026484e1921ed6da94fb05b152f35f40058e6ad8aa0a",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/5",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9544986673949096,
+          "track_ids": [
+            116,
+            117
+          ],
+          "processing_ms": 47.2782920114696
+        },
+        {
+          "onset": 7.933333333333334,
+          "score": 0.9984730814109224,
+          "track_ids": [
+            116,
+            117
+          ],
+          "processing_ms": 63.72608398669399
+        }
+      ],
+      "duration_seconds": 8.466666666666667,
+      "analyzed_frames": 85,
+      "coverage": 0.6,
+      "processing_median_ms": 53.806417010491714,
+      "processing_p95_ms": 311.36074118549004,
+      "people_histogram": {
+        "2": 85
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 51
+      },
+      "max_score": 0.9984730814109224
+    },
+    {
+      "path": "limu/punch_5.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "left",
+      "mirrored": true,
+      "sha256": "4084b984da2c4e980f25026484e1921ed6da94fb05b152f35f40058e6ad8aa0a",
+      "effective_head_sha256": "1233d51acb948214d27792f840b0bd240184af25944821cd7687f8ca360ba9fd",
+      "excluded_training_group": "limu/5",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9651591976342602,
+          "track_ids": [
+            118,
+            119
+          ],
+          "processing_ms": 68.64266699994914
+        }
+      ],
+      "duration_seconds": 8.466666666666667,
+      "analyzed_frames": 85,
+      "coverage": 0.6,
+      "processing_median_ms": 53.07279198314063,
+      "processing_p95_ms": 340.7990586187225,
+      "people_histogram": {
+        "2": 85
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 4,
+        "Experimental visual action score; possible striking motion": 51
+      },
+      "max_score": 0.9922042494056397
+    },
+    {
+      "path": "limu/punch_6.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "dfd44f2ab496a82a476f0d62abaf435b297522f49122ffadf56cd9ce2b791b17",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/6",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9966563734050464,
+          "track_ids": [
+            120,
+            121
+          ],
+          "processing_ms": 47.99420799827203
+        }
+      ],
+      "duration_seconds": 7.2,
+      "analyzed_frames": 72,
+      "coverage": 0.5416666666666666,
+      "processing_median_ms": 51.52714600262698,
+      "processing_p95_ms": 323.68902257148875,
+      "people_histogram": {
+        "2": 72
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 39
+      },
+      "max_score": 0.9999906061696514
+    },
+    {
+      "path": "limu/punch_6.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "dfd44f2ab496a82a476f0d62abaf435b297522f49122ffadf56cd9ce2b791b17",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/6",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9885994312423344,
+          "track_ids": [
+            122,
+            123
+          ],
+          "processing_ms": 57.26191701251082
+        }
+      ],
+      "duration_seconds": 7.2,
+      "analyzed_frames": 72,
+      "coverage": 0.5416666666666666,
+      "processing_median_ms": 53.50410450773779,
+      "processing_p95_ms": 312.43282879149774,
+      "people_histogram": {
+        "2": 72
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 39
+      },
+      "max_score": 0.9999292945497701
+    },
+    {
+      "path": "limu/punch_7.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "44d9fe4854417b52704ef70fdf2f29a23ea62be6a60d4598b4b16a1d3261c22b",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/7",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.6,
+      "analyzed_frames": 56,
+      "coverage": 0.4107142857142857,
+      "processing_median_ms": 47.89395799161866,
+      "processing_p95_ms": 302.72177123697475,
+      "people_histogram": {
+        "2": 56
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 23
+      },
+      "max_score": 0.5535619485545364
+    },
+    {
+      "path": "limu/punch_7.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "44d9fe4854417b52704ef70fdf2f29a23ea62be6a60d4598b4b16a1d3261c22b",
+      "effective_head_sha256": "f4650219060cb863233714c49054e319fe0bfe1b75598a71a8b05b46568e0c40",
+      "excluded_training_group": "limu/7",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [],
+      "duration_seconds": 5.6,
+      "analyzed_frames": 56,
+      "coverage": 0.4107142857142857,
+      "processing_median_ms": 45.939457981148735,
+      "processing_p95_ms": 307.58181223791325,
+      "people_histogram": {
+        "2": 56
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 23
+      },
+      "max_score": 0.16632076297823928
+    },
+    {
+      "path": "limu/punch_8.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "56bcb75c455e00189149c01f3e2efb85229a3c40d58ba16711c2e81e750dfd5d",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/8",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9993459005571692,
+          "track_ids": [
+            128,
+            129
+          ],
+          "processing_ms": 51.81200001970865
+        }
+      ],
+      "duration_seconds": 7.533333333333333,
+      "analyzed_frames": 75,
+      "coverage": 0.5466666666666666,
+      "processing_median_ms": 50.856375019066036,
+      "processing_p95_ms": 308.8213501032442,
+      "people_histogram": {
+        "2": 74,
+        "1": 1
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 41,
+        "Keep exactly two people in the frame": 1
+      },
+      "max_score": 0.999996055520555
+    },
+    {
+      "path": "limu/punch_8.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "56bcb75c455e00189149c01f3e2efb85229a3c40d58ba16711c2e81e750dfd5d",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/8",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9999327789039666,
+          "track_ids": [
+            131,
+            132
+          ],
+          "processing_ms": 59.2729159980081
+        }
+      ],
+      "duration_seconds": 7.533333333333333,
+      "analyzed_frames": 75,
+      "coverage": 0.52,
+      "processing_median_ms": 52.05483399913646,
+      "processing_p95_ms": 307.8964913933305,
+      "people_histogram": {
+        "2": 72,
+        "1": 3
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 39,
+        "Keep exactly two people in the frame": 3
+      },
+      "max_score": 0.9999982591147591
+    },
+    {
+      "path": "limu/punch_9.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": false,
+      "sha256": "19dde5ad0ebf3091a1f6491a2e9b6cdc5aaf187b520257f31c61094f727f70e2",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/9",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9999911386316858,
+          "track_ids": [
+            134,
+            135
+          ],
+          "processing_ms": 56.19458400178701
+        }
+      ],
+      "duration_seconds": 7.2,
+      "analyzed_frames": 72,
+      "coverage": 0.5416666666666666,
+      "processing_median_ms": 48.79877099301666,
+      "processing_p95_ms": 304.45845349895535,
+      "people_histogram": {
+        "2": 72
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 39
+      },
+      "max_score": 0.9999998386023953
+    },
+    {
+      "path": "limu/punch_9.avi",
+      "dataset": "limu",
+      "category": "punch",
+      "original_actor_side": "right",
+      "mirrored": true,
+      "sha256": "19dde5ad0ebf3091a1f6491a2e9b6cdc5aaf187b520257f31c61094f727f70e2",
+      "effective_head_sha256": "b31fc4219e249ddeb08379ac62253f500e30c26df10bc37aeabfc948e99171aa",
+      "excluded_training_group": "limu/9",
+      "source": "replay",
+      "automatic_calls": false,
+      "model": "learned-video-s3d-strike-v1-8c3131ff-b3f50554 (experimental)",
+      "event_policy": {
+        "entry": 0.75,
+        "exit": 0.35,
+        "entry_seconds": 0.3,
+        "quiet_seconds": 2.0,
+        "cooldown": 0
+      },
+      "threshold_version": "experimental-40bf7d312ea4",
+      "timestamp_source": "presentation_timestamps",
+      "timestamp_fallback_frames": 0,
+      "model_window_seconds": 3.3,
+      "capture_transport_delay_ms": null,
+      "events": [
+        {
+          "onset": 3.7333333333333334,
+          "score": 0.9999639473631438,
+          "track_ids": [
+            136,
+            137
+          ],
+          "processing_ms": 52.62354202568531
+        }
+      ],
+      "duration_seconds": 7.2,
+      "analyzed_frames": 72,
+      "coverage": 0.5416666666666666,
+      "processing_median_ms": 52.74479152285494,
+      "processing_p95_ms": 309.5810496874037,
+      "people_histogram": {
+        "2": 72
+      },
+      "abstention_reasons": {
+        "Building a clear two-person action window\u2026": 30,
+        "Waiting for fresh action analysis\u2026": 3,
+        "Experimental visual action score; possible striking motion": 39
+      },
+      "max_score": 0.9999999801988906
+    }
+  ]
+}

@@ -1,5 +1,17 @@
 # Live Safety model feasibility report
 
+## Current visual model update — 2026-10-27
+
+The local runner now defaults to independent EfficientDet person boxes plus a learned S3D RGB action model. The older pose/trajectory and STGCN sections below describe earlier implementations. Missing arm landmarks no longer remove a visual-mode person track. The default model uses one bounded asynchronous inference job and requires a fresh, clear two-person video window.
+
+Full-pipeline source-excluded development replay on 30 public LIMU clips: 8/10 punch clips alerted in each orientation; false alerts on 2/20 ordinary clips in original view and 1/20 mirrored. These correlated development variants are not independent webcam qualification. Two punch clips remain missed in both views. See [the current model report](VISUAL_STRIKE_MODEL.md) and [per-clip evidence](VISUAL_DEVELOPMENT_CHECK.json) for training, source hashes, grouping and limits.
+
+A separate real-time localhost API/WebSocket check used public training-source footage at original speed through the production asynchronous model. Left-actor punch, right-actor punch and the mirrored right-actor clip each produced an alert. The selected handclap and handshake clips produced none. All 316 sent frames returned results, with zero dropped frames; median client round-trip time was 43–51 ms across those clips. This is a transport/regression check, not independent recognition accuracy or a webcam measurement. [Measured transport report](VISUAL_TRANSPORT_CHECK.json).
+
+127 versioned backend safety tests pass. The changed live trial scoring passed 10 frontend unit tests, five targeted Chromium checks and the production build. Calls, app recording and incident storage stayed off in the live-only checks. The detector remains unqualified; automatic real calls stay locked. The reports below are historical and do not override these current results.
+
+---
+
 Updated 2026-10-22. **Engineering prototype runs live; detector qualification is unmet.** There are no held-out human action recordings/results. Automatic real calls stay locked. This report does not claim measured violence recognition or pre-contact prediction.
 
 The current simplified live view uses a live-only session: the same temporal detector and visibility/freshness gates, with no incident persistence, recording, phone actions or incident cooldown. The broader policy measurements below retain their original configuration/provenance. Human two-person accuracy remains unmeasured.

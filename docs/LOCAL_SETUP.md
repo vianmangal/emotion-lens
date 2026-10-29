@@ -7,14 +7,16 @@ Test environment, 2026-10-21: Apple M4, 16 GiB RAM, macOS 27.0.1 arm64, Python 3
 Run commands from the repository root. Keep the existing `.venv` and local data/model files intact; the safety stack has a separate environment.
 
 ```bash
-python3.11 -m venv .venv-safety
-source .venv-safety/bin/activate
-pip install -r backend/requirements-safety.txt
-python scripts/download_models.py
+python3.11 -m venv .venv-visual
+source .venv-visual/bin/activate
+pip install -r backend/requirements-visual.txt
+python scripts/download_models.py --visual
 python scripts/run_local.py
 ```
 
-The explicit downloader writes below `data/models/`, checks exact sizes and SHA256, and prints nonsecret model configuration. Startup never downloads anything. Without configured artifacts the API/preview/history/dry-run tests remain usable and monitoring reports unavailable.
+The default is the experimental learned RGB detector with independent person boxes. On the owner's Mac, `.venv-model` already has these dependencies and can run `.venv-model/bin/python scripts/run_local.py`. The explicit downloader writes below `data/models/`, checks SHA256, and prints nonsecret model configuration. Startup never downloads anything. Missing dependencies or artifacts report detection unavailable. See [the visual model report](VISUAL_STRIKE_MODEL.md) for measured development results and limitations.
+
+The older trajectory baseline remains available with `.venv-safety/bin/python scripts/run_local.py --model baseline` after installing `backend/requirements-safety.txt` and running `scripts/download_models.py`. It needs no Torch. Always pass `--model baseline` when using that lighter environment.
 
 For the pretrained CPU temporal model, stop the first backend and run:
 
@@ -40,13 +42,13 @@ Plain `uvicorn backend.main:app --host 127.0.0.1 --port 8000 --ws-max-size 10485
 ## Live use
 
 1. Select Live Safety, choose a camera and click **Start camera**. Video, person tracking and motion detection start together; microphone permission is never requested.
-2. Keep both participants' upper bodies and arms visible. Labeled boxes and skeletons identify session-local tracks. Fewer than two visible people, uncertain limbs or insufficient history cannot establish a striking interaction.
+2. Keep both participants' bodies and arm motions visible. Labeled person boxes identify session-local tracks. The visual model uses RGB video rather than wrist trajectories; it does not draw inferred skeletons. It needs exactly two detected people and about three seconds of clear history. Briefly wait after Start before performing an action.
 3. Watch for **Possible hit detected** in the live status. Camera selection, Start and Stop are the main controls. **Resume detection** appears only after a pause; returning to a visible tab does not silently resume analysis.
 4. Stop releases the camera and connection. Switching to another application view also releases them. Camera switching requires Stop, select another device, then Start.
 
-The simplified live view has no incident history, clips, sound/phone settings or separate arming step. It requests `live_only: true`: incident writes, recording and phone actions are disabled for that session, and the incident-notification cooldown is removed. Existing local data and the older backend APIs are preserved. A session still expires after one hour by default; Stop/Start renews it.
+By default, the simplified live view uses `live_only: true`: incident writes, recording and phone actions are disabled for that session, and the incident-notification cooldown is removed. Optional owner phone controls and explicitly configured demo auto-calling are described in the README; both are disabled in the current local configuration. Existing local data and the older backend APIs are preserved. A session still expires after one hour by default; Stop/Start renews it.
 
-See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental and human accuracy remains unmeasured.
+See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental. Public-video development results are measured; accuracy on this webcam, these participants and unseen conditions remains unmeasured.
 
 ## Optional expression feature
 
@@ -56,7 +58,7 @@ See [DEMO.md](DEMO.md) for the two-person walkthrough. Detection is experimental
 
 Set `MODEL_PATH=models/emotion_cnn_20260530_193721_best.keras` in a root `.env`. Existing tracked expression weights are preserved. `/predict` retains its multipart `image` and response contract; `/health` reports expression configuration separately. TensorFlow is lazy and optional, so missing expression dependencies/weights cannot prevent safety startup. The physical weight files were not validated during this implementation; legacy preprocessing/API behavior is tested with an inference mock.
 
-## ElevenLabs adapter (backend only, deferred from the live view)
+## Optional ElevenLabs adapter
 
 Dry runs need no credentials or internet. A real test needs an ElevenLabs agent, a native connected outbound-capable Twilio phone number/verified caller ID, and a consenting recipient. An API key alone is not a phone line. Follow [native integration prerequisites](https://elevenlabs.io/docs/eleven-agents/phone-numbers/twilio-integration/native-integration/).
 
@@ -67,14 +69,14 @@ ELEVENLABS_API_KEY=
 ELEVENLABS_AGENT_ID=
 ELEVENLABS_AGENT_PHONE_NUMBER_ID=
 SAFETY_ALERT_TO_NUMBER=
-SAFETY_CALL_GRACE_SECONDS=10
+SAFETY_CALL_GRACE_SECONDS=2
 SAFETY_CALL_COOLDOWN_SECONDS=300
 SAFETY_CALL_MAX_PER_HOUR=3
 ```
 
 The destination is E.164 (`+` followed by country code and number). Only the configured destination can be called. The UI reveals its last four digits. Configure the agent to speak its trusted `emotionlens_message` dynamic variable, keep calls short, end after the message, and disable unnecessary tools; configure maximum duration in ElevenLabs. The adapter uses [the native outbound-call endpoint](https://elevenlabs.io/docs/api-reference/integrations/twilio/outbound-call), sets `call_recording_enabled=false`, and sends a brief trusted message with no images, video, or embeddings. Review agent transcript/audio retention separately; that flag controls Twilio recording, not all provider retention.
 
-The current Live Safety screen exposes no phone tests or real-call controls. Live-only sessions reject phone modes and clips. The server adapter and its tests remain for a later phase; no real call is part of installation/tests, and automatic real mode remains locked while qualification is unmet.
+Live-only sessions reject phone modes and clips. Optional owner-authorized real-call controls require server configuration and the private owner key; optional demo auto-calling requires an explicit server setting. Neither mode qualifies detector accuracy. Installation and tests do not place real calls.
 
 A submitted request does not establish that anyone answered. `failed` means explicit rejection; timeout/ambiguous provider responses become `delivery_unknown` without retry. At most one submission is in flight, with 5-minute recipient cooldown and 3 real attempts per rolling hour, including real tests. Deleting an event preserves minimal call accounting/dedup for at least that horizon. Restart cancels countdowns and marks interrupted submissions unknown. Submitted calls cannot be recalled by this app.
 
@@ -98,7 +100,7 @@ Clips are served only by incident ID with a capability. Arbitrary paths and syml
 - Camera busy/disconnected: close other camera users, reconnect, Stop and Start.
 - Missing weights/dependencies/checksum mismatch: use the matching environment and explicit downloader; read the model report. No automatic download/fallback silently changes an explicitly selected model.
 - No visible tracks: improve framing/lighting; show both upper bodies. The simple tracker can lose IDs during crossings.
-- Frame age/stale result: stop competing CPU work and re-arm. Capture targets 10 FPS at at most 640×480. The UI computes age from browser capture to returned result on the same monotonic clock. Each Arm request supplies `client_now_ms` for server freshness checks; it is never inferred from the first image. Server age still has one-way clock-alignment uncertainty, and neither measure is physical sensor latency.
+- Frame age/stale result: stop competing CPU work and re-arm. The native preview requests 30 FPS; box tracking targets 20 FPS at at most 640×480, with at most two outstanding frames. RGB action history is sampled separately at its trained 10 FPS. The UI computes age from browser capture to returned result on the same monotonic clock. Each Arm request supplies `client_now_ms` for server freshness checks; it is never inferred from the first image. Server age still has one-way clock-alignment uncertainty, and neither measure is physical sensor latency.
 - Recording unavailable: the startup VP8/WebM encode/decode probe failed, or the local directory is unwritable. Detection can continue with recording off.
 - Quota/storage warning: free local disk or delete incidents. Clip admission reserves a conservative uncompressed upper bound, so quota rejection can happen before the actual compressed quota is full.
 - Backend disconnected: start/restart the local API, then Start and Arm explicitly. Nothing automatically resumes real actions.

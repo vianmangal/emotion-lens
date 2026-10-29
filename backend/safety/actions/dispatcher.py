@@ -4,13 +4,13 @@ from datetime import datetime, timezone
 from sqlalchemy import select, update, func, or_
 from sqlalchemy.exc import IntegrityError
 from backend.safety.models import Action, Incident, new_id
-from backend.safety.actions.elevenlabs import ElevenLabs, configured, trusted_message, masked_recipient
+from backend.safety.actions.provider import create_provider, configured, trusted_message, masked_recipient, provider_label
 
 
 class Dispatcher:
     def __init__(self, factory, config, allowed, provider=None, clock=time.time):
         self.factory, self.config, self.allowed = factory, config, allowed
-        self.provider = provider or ElevenLabs(config)
+        self.provider = provider or create_provider(config)
         self.clock = clock
         self.lock = asyncio.Lock()
 
@@ -37,8 +37,11 @@ class Dispatcher:
                 return None  # An incident deleted during creation cannot become a test call.
             event_time = datetime.fromtimestamp(event.created_at, timezone.utc).isoformat() if event else None
             preview = {'dry_run_payload': {'summary': trusted_message(event_id is None, event_time),
-                       'recipient': masked_recipient(self.config), 'call_recording_enabled': False,
-                       'external_service': 'ElevenLabs native Twilio (not contacted)'}} if mode == 'dry_run' else {}
+                       'recipient': masked_recipient(self.config),
+                       'call_recording_enabled': False if self.config.SAFETY_CALL_PROVIDER == 'elevenlabs' else None,
+                       'recording_note': ('Controlled by the Sarvam workspace; no per-call recording flag is sent.'
+                                          if self.config.SAFETY_CALL_PROVIDER == 'sarvam' else 'Disabled in the call request.'),
+                       'external_service': f'{provider_label(self.config)} (not contacted)'}} if mode == 'dry_run' else {}
             db.add(Action(id=action_id, event_id=event_id, dedup_key=key, mode=mode, provider_ids=preview,
                           due_at=now + self.config.SAFETY_CALL_GRACE_SECONDS))
             try:

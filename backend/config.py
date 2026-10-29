@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,12 +19,31 @@ class Settings(BaseSettings):
     SAFETY_STGCN_PATH: str = ''
     SAFETY_STGCN_SHA256: str = ''
     SAFETY_STGCN_CONFIG: str = ''
+    SAFETY_VISUAL_WEIGHTS_PATH: str = ''
+    SAFETY_VISUAL_WEIGHTS_SHA256: str = ''
+    SAFETY_VISUAL_HEAD_PATH: str = ''
+    SAFETY_VISUAL_HEAD_SHA256: str = ''
+    SAFETY_VISUAL_SYNCHRONOUS: bool = False
+    SAFETY_VISUAL_OPTIMIZE_CPU: bool = False
+    SAFETY_PERSON_PATH: str = ''
+    SAFETY_PERSON_SHA256: str = ''
     SAFETY_CALL_MODE: str = 'off'
+    SAFETY_DEMO_AUTO_CALLS: bool = False
+    SAFETY_CALL_OWNER_KEY: SecretStr = SecretStr('')
+    SAFETY_CALL_TRIGGER_SECONDS: float = Field(1.5, ge=.5, le=10, allow_inf_nan=False)
+    SAFETY_CALL_PROVIDER: Literal['elevenlabs', 'sarvam'] = 'elevenlabs'
     ELEVENLABS_API_KEY: SecretStr = SecretStr('')
     ELEVENLABS_AGENT_ID: str = ''
     ELEVENLABS_AGENT_PHONE_NUMBER_ID: str = ''
+    SARVAM_API_KEY: SecretStr = SecretStr('')
+    SARVAM_ORG_ID: str = ''
+    SARVAM_WORKSPACE_ID: str = ''
+    SARVAM_AGENT_ID: str = ''
+    SARVAM_AGENT_VERSION: int = Field(1, ge=1)
+    SARVAM_CONNECTION_ID: str = ''
+    SARVAM_AGENT_PHONE_NUMBER: SecretStr = SecretStr('')
     SAFETY_ALERT_TO_NUMBER: SecretStr = SecretStr('')
-    SAFETY_CALL_GRACE_SECONDS: float = Field(10, ge=1, le=60)
+    SAFETY_CALL_GRACE_SECONDS: float = Field(2, ge=1, le=60)
     SAFETY_CALL_COOLDOWN_SECONDS: float = Field(300, ge=1)
     SAFETY_CALL_MAX_PER_HOUR: int = Field(3, ge=1, le=3)
     SAFETY_CLIP_QUOTA_MB: int = Field(500, ge=1, le=5000)

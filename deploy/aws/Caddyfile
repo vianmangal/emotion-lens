@@ -1,0 +1,24 @@
+cnn.vian1.tech {
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy same-origin
+        Permissions-Policy "camera=(self), microphone=()"
+    }
+    # Global phone controls and incident records stay private. Owner-session
+    # calls use separate routes with owner-key and session-capability checks.
+    @phone path /safety/phone /safety/phone/* /safety/events /safety/events/*
+    handle @phone {
+        respond "Global phone controls and incident records are available through server administration only." 403
+    }
+    @api path /safety /safety/* /health /predict /predict/*
+    handle @api {
+        reverse_proxy 127.0.0.1:8000 {
+            header_up -Authorization
+        }
+    }
+    handle {
+        root * /opt/emotionlens/current/deep_fe/frontend/dist
+        try_files {path} /index.html
+        file_server
+    }
+}

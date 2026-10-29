@@ -1,0 +1,26 @@
+[Unit]
+Description=EmotionLens hosted demo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=emotionlens
+Group=emotionlens
+WorkingDirectory=/opt/emotionlens/current
+EnvironmentFile=/etc/emotionlens/app.env
+Environment=PYTHONUNBUFFERED=1
+Environment=TF_NUM_INTRAOP_THREADS=2
+Environment=TF_NUM_INTEROP_THREADS=1
+ExecStart=/opt/emotionlens/venv/bin/python scripts/run_hosted.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/emotionlens
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

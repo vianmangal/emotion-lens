@@ -42,7 +42,7 @@ def create_app(config=settings, engine=None):
         return JSONResponse({'detail': message}, status_code=503)
     app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ALLOW_ORIGINS, allow_credentials=False,
                        allow_methods=['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-                       allow_headers=['Content-Type', 'X-Safety-Capability', 'X-Session-Capability', 'X-EmotionLens-Client'])
+                       allow_headers=['Content-Type', 'X-Safety-Capability', 'X-Session-Capability', 'X-EmotionLens-Client', 'X-Safety-Owner'])
 
     @app.middleware('http')
     async def local_requests(request: Request, call_next):

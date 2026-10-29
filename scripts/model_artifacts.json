@@ -3,12 +3,35 @@
     "name": "pose_landmarker_lite.task",
     "url": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
     "sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a",
-    "bytes": 5777746
+    "bytes": 5777746,
+    "kind": "pose"
   },
   {
     "name": "stgcn_ntu60.pth",
     "url": "https://download.openmmlab.com/mmaction/v1.0/skeleton/stgcn/stgcn_8xb16-joint-u100-80e_ntu60-xsub-keypoint-2d/stgcn_8xb16-joint-u100-80e_ntu60-xsub-keypoint-2d_20221129-484a394a.pth",
     "sha256": "484a394a50246032fef9694396096902909784e8618ccc845d2859dc2b952fea",
-    "bytes": 12479895
+    "bytes": 12479895,
+    "kind": "stgcn"
+  },
+  {
+    "name": "s3d_kinetics400.pth",
+    "kind": "visual",
+    "sha256": "d76dad2f4b2a6701ad7f64e85b294b2d1989f1ea0d3f8b240446ed2152850bbb",
+    "bytes": 33524997,
+    "url": "https://download.pytorch.org/models/s3d-d76dad2f.pth"
+  },
+  {
+    "name": "visual_head_v1.json",
+    "kind": "visual",
+    "sha256": "8c3131ffb8b43de564279fcb909b58f5fa28bbff6c10f126ecbf127b98daa5c2",
+    "bytes": 742612,
+    "local_path": "backend/safety/assets/visual_head_v1.json"
+  },
+  {
+    "name": "efficientdet_lite2_int8.tflite",
+    "kind": "visual",
+    "url": "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/int8/latest/efficientdet_lite2.tflite",
+    "sha256": "b3f50554cb0ea559e90328845f7d9ba4d13c8bff372914d24e06bc8bb72fa896",
+    "bytes": 7515971
   }
 ]
