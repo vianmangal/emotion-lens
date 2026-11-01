@@ -66,6 +66,9 @@ The former deployment at `cnn.vian1.tech` was decommissioned on 2026-10-28. AWS 
 
 ## More information
 
+- [Academic project report guide](docs/PROJECT_REPORT_GUIDE.md)
+- [Saved expression evaluation summary](docs/EXPRESSION_EVALUATION_SUMMARY.md)
+- [Capturing demonstration evidence](docs/DEMONSTRATION_EVIDENCE.md)
 - [Setup and troubleshooting](docs/LOCAL_SETUP.md)
 - [Demo and accuracy testing](docs/DEMO.md)
 - [Verification results and test commands](docs/SAFETY_EVALUATION.md)
